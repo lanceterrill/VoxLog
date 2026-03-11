@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoxLog — Voicemail Transcription Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0e0f11;
+    --surface:  #161719;
+    --panel:    #1c1e21;
+    --border:   #2a2d32;
+    --border2:  #353840;
+    --accent:   #00c896;
+    --accent2:  #0099ff;
+    --warn:     #ffaa00;
+    --danger:   #ff4455;
+    --text:     #e2e4e8;
+    --muted:    #7a8090;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #000;
+    font-size: 16px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .stat-pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--muted);
+  }
+  .stat-pill b { color: var(--accent); }
+
+  /* ── MAIN LAYOUT ── */
+  .app-body { display: flex; flex-direction: column; height: calc(100vh - 56px); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { background: #00e0a8; }
+  .btn-secondary { background: transparent; color: var(--text); border-color: var(--border2); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .toolbar-sep { width: 1px; height: 28px; background: var(--border); }
+
+  .search-wrap {
+    position: relative;
+    flex: 1; min-width: 180px; max-width: 320px;
+  }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .search-input {
+    width: 100%;
+    padding: 7px 12px 7px 34px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--accent2); }
+  .search-input::placeholder { color: var(--muted); }
+
+  select.sort-select {
+    padding: 7px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  select.sort-select:focus { border-color: var(--accent2); }
+
+  .progress-bar-wrap {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .progress-bar-wrap.visible { display: flex; }
+  .progress-bar-outer {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width .3s;
+    width: 0%;
+  }
+  .progress-label { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  /* ── DROP ZONE ── */
+  #drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex: 1;
+    margin: 32px 28px;
+    border: 2px dashed var(--border2);
+    border-radius: 12px;
+    background: var(--surface);
+    transition: all .2s;
+    cursor: pointer;
+    text-align: center;
+    padding: 48px;
+  }
+  #drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,200,150,.05);
+  }
+  .drop-icon { font-size: 48px; opacity: .5; }
+  .drop-title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .drop-sub { color: var(--muted); font-size: 14px; }
+  .drop-sub b { color: var(--accent); }
+  #file-input { display: none; }
+
+  /* ── TABLE ── */
+  #dashboard { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  #dashboard.visible { display: flex; }
+
+  .table-wrap { flex: 1; overflow: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead {
+    position: sticky; top: 0;
+    background: var(--panel);
+    z-index: 10;
+  }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+  }
+  th:hover { color: var(--accent); }
+  th.sorted-asc::after  { content: ' ↑'; color: var(--accent); }
+  th.sorted-desc::after { content: ' ↓'; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr:hover { background: var(--panel); }
+  tbody tr.selected { background: rgba(0,200,150,.06); }
+
+  td {
+    padding: 10px 14px;
+    vertical-align: top;
+  }
+
+  .td-check { width: 36px; }
+  input[type=checkbox] { accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px; }
+
+  .td-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    width: 42px;
+    text-align: right;
+  }
+
+  .td-filename {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .td-size { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .td-dur  { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .td-transcript {
+    min-width: 260px;
+    max-width: 480px;
+    line-height: 1.55;
+  }
+
+  .td-caller { min-width: 120px; }
+  .td-notes  { min-width: 160px; }
+  .td-status { min-width: 100px; }
+  .td-actions { white-space: nowrap; }
+
+  /* Inline editing */
+  .editable {
+    cursor: text;
+    border-radius: 3px;
+    padding: 2px 4px;
+    min-height: 20px;
+    display: block;
+    word-break: break-word;
+    outline: none;
+    border: 1px solid transparent;
+    transition: border-color .15s, background .15s;
+  }
+  .editable:hover { border-color: var(--border2); background: var(--surface); }
+  .editable:focus { border-color: var(--accent2); background: var(--surface); }
+  .editable[placeholder]:empty::before {
+    content: attr(placeholder);
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .status-new      { background: rgba(0,153,255,.15); color: var(--accent2); border-color: rgba(0,153,255,.3); }
+  .status-reviewed { background: rgba(0,200,150,.15); color: var(--accent);  border-color: rgba(0,200,150,.3); }
+  .status-actioned { background: rgba(255,170,0,.15);  color: var(--warn);   border-color: rgba(255,170,0,.3); }
+  .status-archived { background: rgba(100,100,100,.15); color: var(--muted); border-color: rgba(100,100,100,.3); }
+
+  /* Action icons */
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: color .15s, background .15s;
+  }
+  .icon-btn:hover { color: var(--text); background: var(--border); }
+  .icon-btn.del:hover { color: var(--danger); background: rgba(255,68,85,.1); }
+
+  /* Transcribing spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .transcribing-cell { color: var(--muted); font-style: italic; }
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 28px 32px;
+    width: 460px;
+    max-width: 95vw;
+  }
+  .modal h2 { font-size: 17px; margin-bottom: 6px; }
+  .modal p  { color: var(--muted); font-size: 13px; line-height: 1.55; margin-bottom: 20px; }
+
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+  .modal-field input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+  }
+  .modal-field input:focus { border-color: var(--accent2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+  /* ── FOOTER STATUS BAR ── */
+  .statusbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 6px 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .statusbar .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-green  { background: var(--accent); }
+  .dot-yellow { background: var(--warn); }
+  .dot-red    { background: var(--danger); }
+
+  /* ── TOAST ── */
+  #toast-container {
+    position: fixed; bottom: 48px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 9999;
+  }
+  .toast {
+    padding: 10px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 13px;
+    animation: toastIn .2s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    max-width: 340px;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.warn  { border-left-color: var(--warn); }
+  @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+  /* ── EMPTY STATE ── */
+  .empty-row td {
+    text-align: center;
+    padding: 48px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="api-modal">
+  <div class="modal">
+    <h2>🔑 Groq API Key</h2>
+    <p>VoxLog uses <b>Groq Whisper</b> to transcribe your voicemails — free tier, fast, and highly accurate.<br><br>Get a free key at <b>console.groq.com → API Keys</b>. Stored in memory only for this session.</p>
+    <div class="modal-field">
+      <label>Groq API Key</label>
+      <input type="password" id="api-key-input"  placeholder="gsk_..." autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="skip-api-btn">Skip (demo mode)</button>
+      <button class="btn btn-primary" id="save-api-btn">Save & Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📞</div>
+    Vox<span>Log</span>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">Total: <b id="stat-total">0</b></div>
+    <div class="stat-pill">Reviewed: <b id="stat-reviewed">0</b></div>
+    <div class="stat-pill">Pending: <b id="stat-pending">0</b></div>
+    <button class="btn btn-secondary" id="change-key-btn" style="font-size:12px; padding:5px 10px;">🔑 Groq Key</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" id="load-folder-btn">📁 Load WAV Files</button>
+    <input type="file" id="file-input" accept=".wav,audio/*" multiple>
+
+    <div class="toolbar-sep"></div>
+
+    <button class="btn btn-secondary" id="transcribe-all-btn" disabled>⚡ Transcribe All</button>
+    <button class="btn btn-secondary" id="export-csv-btn" disabled>⬇ Export CSV</button>
+    <button class="btn btn-danger"    id="clear-btn"       disabled>✕ Clear All</button>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-input" type="text" id="search-input" placeholder="Search transcriptions…">
+    </div>
+
+    <select class="sort-select" id="sort-select">
+      <option value="idx">Order: Original</option>
+      <option value="filename">Sort: Filename A→Z</option>
+      <option value="filename-desc">Sort: Filename Z→A</option>
+      <option value="size">Sort: Size ↑</option>
+      <option value="size-desc">Sort: Size ↓</option>
+      <option value="status">Sort: Status</option>
+      <option value="transcript">Sort: Transcript A→Z</option>
+    </select>
+
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+      <div class="progress-label" id="progress-label">0 / 0</div>
+    </div>
+  </div>
+
+  <!-- Drop Zone -->
+  <div id="drop-zone">
+    <div class="drop-icon">🎙️</div>
+    <div class="drop-title">Drop voicemail .wav files here</div>
+    <div class="drop-sub">Or click <b>Load WAV Files</b> above — select multiple files from your folder</div>
+    <div class="drop-sub" style="margin-top:4px; font-size:12px;">Supports .wav • Each file transcribed via Claude AI</div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="table-wrap">
+      <table id="voicemail-table">
+        <thead>
+          <tr>
+            <th class="td-check"><input type="checkbox" id="check-all"></th>
+            <th class="td-num">#</th>
+            <th data-col="filename">Filename</th>
+            <th data-col="size">Size</th>
+            <th data-col="transcript">Transcription</th>
+            <th data-col="caller">Caller / Label</th>
+            <th data-col="notes">Notes</th>
+            <th data-col="status">Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <span><span class="dot dot-green"></span> VoxLog v1.0</span>
+    <span id="sb-files">No files loaded</span>
+    <span id="sb-api">API: <span id="sb-api-status" style="color:var(--muted)">not configured</span></span>
+    <span id="sb-sel" style="display:none">Selected: <b id="sb-sel-count">0</b></span>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-container"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let apiKey = '';
+let demoMode = false;
+let voicemails = []; // { id, file, filename, size, sizeLabel, transcript, caller, notes, status, transcribing }
+let nextId = 1;
+let sortKey = 'idx';
+let searchQuery = '';
+let sortAsc = true;
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById('save-api-btn').addEventListener('click', () => {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('gsk_') || val.length < 10) {
+    toast('Enter a valid Groq API key (starts with gsk_)', 'error');
+    return;
+  }
+  apiKey = val;
+  demoMode = false;
+  document.getElementById('api-modal').classList.add('hidden');
+  document.getElementById('sb-api-status').textContent = 'Groq Whisper ✓';
+  document.getElementById('sb-api-status').style.color = 'var(--accent)';
+  toast('API key saved. Ready to transcribe!');
+});
+
+document.getElementById('skip-api-btn').addEventListener('click', () => {
+  demoMode = true;
+  document.getElementById('api-modal').classList.add('hidden');
+  document.getElementById('sb-api-status').textContent = 'demo mode';
+  document.getElementById('sb-api-status').style.color = 'var(--warn)';
+  toast('Demo mode: placeholder transcriptions will be used', 'warn');
+});
+
+document.getElementById('change-key-btn').addEventListener('click', () => {
+  document.getElementById('api-modal').classList.remove('hidden');
+  document.getElementById('api-key-input').value = apiKey;
+});
+
+// ── FILE LOADING ───────────────────────────────────────────────────────────
+document.getElementById('load-folder-btn').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  handleFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.wav') || f.type.startsWith('audio/'));
+  handleFiles(files);
+});
+
+function handleFiles(files) {
+  const wavFiles = files.filter(f => f.name.toLowerCase().endsWith('.wav') || f.type.startsWith('audio/'));
+  if (!wavFiles.length) { toast('No .wav files found', 'warn'); return; }
+
+  wavFiles.forEach(file => {
+    // deduplicate
+    if (voicemails.find(v => v.filename === file.name && v.size === file.size)) return;
+    voicemails.push({
+      id: nextId++,
+      file,
+      filename: file.name,
+      size: file.size,
+      sizeLabel: formatBytes(file.size),
+      transcript: '',
+      caller: '',
+      notes: '',
+      status: 'new',
+      transcribing: false
+    });
+  });
+
+  showDashboard();
+  render();
+  toast(`Loaded ${wavFiles.length} file(s)`);
+  document.getElementById('transcribe-all-btn').disabled = false;
+  document.getElementById('export-csv-btn').disabled = false;
+  document.getElementById('clear-btn').disabled = false;
+}
+
+// ── TRANSCRIPTION ──────────────────────────────────────────────────────────
+document.getElementById('transcribe-all-btn').addEventListener('click', async () => {
+  const pending = voicemails.filter(v => !v.transcript && !v.transcribing);
+  if (!pending.length) { toast('All files already transcribed', 'warn'); return; }
+  transcribeBatch(pending);
+});
+
+async function transcribeBatch(items) {
+  const wrap = document.getElementById('progress-wrap');
+  const bar  = document.getElementById('progress-bar');
+  const lbl  = document.getElementById('progress-label');
+  wrap.classList.add('visible');
+
+  let done = 0;
+  bar.style.width = '0%';
+  lbl.textContent = `0 / ${items.length}`;
+
+  for (const vm of items) {
+    vm.transcribing = true;
+    render();
+    try {
+      vm.transcript = await transcribeFile(vm.file);
+    } catch(e) {
+      vm.transcript = `[Error: ${e.message}]`;
+    }
+    vm.transcribing = false;
+    done++;
+    const pct = Math.round(done / items.length * 100);
+    bar.style.width = pct + '%';
+    lbl.textContent = `${done} / ${items.length}`;
+    render();
+  }
+
+  wrap.classList.remove('visible');
+  updateStats();
+  toast(`Transcribed ${done} file(s) ✓`);
+}
+
+async function transcribeFile(file) {
+  if (demoMode) {
+    await sleep(600 + Math.random() * 800);
+    return generateDemoTranscript(file.name);
+  }
+
+  // Convert to base64 and build multipart manually to avoid FormData iframe restriction
+  const base64 = await fileToBase64(file);
+  const boundary = '----WavBoundary' + Math.random().toString(36).slice(2);
+
+  // Build raw multipart body as a string → Uint8Array
+  const filename = file.name || 'audio.wav';
+  const pre =
+    `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\ntext\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: audio/wav\r\n\r\n`;
+  const post = `\r\n--${boundary}--\r\n`;
+
+  // Decode base64 → binary bytes
+  const binStr = atob(base64);
+  const bytes  = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+
+  const enc    = new TextEncoder();
+  const preArr = enc.encode(pre);
+  const postArr= enc.encode(post);
+  const body   = new Uint8Array(preArr.length + bytes.length + postArr.length);
+  body.set(preArr, 0);
+  body.set(bytes,  preArr.length);
+  body.set(postArr,preArr.length + bytes.length);
+
+  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`
+    },
+    body: body
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${response.status}`);
+  }
+
+  const text = await response.text();
+  return text.trim() || '[No speech detected]';
+}
+
+async function transcribeSingle(id) {
+  const vm = voicemails.find(v => v.id === id);
+  if (!vm || vm.transcribing) return;
+  transcribeBatch([vm]);
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  let rows = [...voicemails];
+
+  // Filter
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    rows = rows.filter(v =>
+      v.filename.toLowerCase().includes(q) ||
+      v.transcript.toLowerCase().includes(q) ||
+      v.caller.toLowerCase().includes(q) ||
+      v.notes.toLowerCase().includes(q)
+    );
+  }
+
+  // Sort
+  const sk = document.getElementById('sort-select').value;
+  if (sk === 'filename')      rows.sort((a,b) => a.filename.localeCompare(b.filename));
+  else if (sk === 'filename-desc') rows.sort((a,b) => b.filename.localeCompare(a.filename));
+  else if (sk === 'size')     rows.sort((a,b) => a.size - b.size);
+  else if (sk === 'size-desc') rows.sort((a,b) => b.size - a.size);
+  else if (sk === 'status')   rows.sort((a,b) => a.status.localeCompare(b.status));
+  else if (sk === 'transcript') rows.sort((a,b) => a.transcript.localeCompare(b.transcript));
+  // else idx order (original push order)
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">No voicemails match your search</td></tr>`;
+    return;
+  }
+
+  rows.forEach((vm, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = vm.id;
+
+    const statusCycle = ['new','reviewed','actioned','archived'];
+
+    tr.innerHTML = `
+      <td class="td-check"><input type="checkbox" class="row-check" data-id="${vm.id}"></td>
+      <td class="td-num">${i+1}</td>
+      <td class="td-filename" title="${escHtml(vm.filename)}">${escHtml(vm.filename)}</td>
+      <td class="td-size">${vm.sizeLabel}</td>
+      <td class="td-transcript">
+        ${vm.transcribing
+          ? `<span class="transcribing-cell"><span class="spinner"></span>Transcribing…</span>`
+          : `<div class="editable" contenteditable="true" data-field="transcript" data-id="${vm.id}" placeholder="Click Transcribe or type manually…">${escHtml(vm.transcript)}</div>`
+        }
+      </td>
+      <td class="td-caller">
+        <div class="editable" contenteditable="true" data-field="caller" data-id="${vm.id}" placeholder="Caller name…">${escHtml(vm.caller)}</div>
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="notes" data-id="${vm.id}" placeholder="Add notes…">${escHtml(vm.notes)}</div>
+      </td>
+      <td class="td-status">
+        <span class="status-badge status-${vm.status}" data-id="${vm.id}" title="Click to cycle status">${vm.status}</span>
+      </td>
+      <td class="td-actions">
+        ${!vm.transcript && !vm.transcribing
+          ? `<button class="icon-btn transcribe-btn" data-id="${vm.id}" title="Transcribe this file">⚡</button>`
+          : ''
+        }
+        <button class="icon-btn del" data-id="${vm.id}" title="Remove">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateStats();
+}
+
+// ── EVENT DELEGATION ───────────────────────────────────────────────────────
+document.getElementById('table-body').addEventListener('input', e => {
+  const el = e.target;
+  if (el.classList.contains('editable')) {
+    const id = parseInt(el.dataset.id);
+    const field = el.dataset.field;
+    const vm = voicemails.find(v => v.id === id);
+    if (vm) { vm[field] = el.innerText.trim(); updateStats(); }
+  }
+});
+
+document.getElementById('table-body').addEventListener('click', e => {
+  const btn = e.target;
+
+  // Status cycle
+  if (btn.classList.contains('status-badge')) {
+    const id = parseInt(btn.dataset.id);
+    const vm = voicemails.find(v => v.id === id);
+    if (!vm) return;
+    const cycle = ['new','reviewed','actioned','archived'];
+    vm.status = cycle[(cycle.indexOf(vm.status) + 1) % cycle.length];
+    render();
+    return;
+  }
+
+  // Transcribe single
+  if (btn.classList.contains('transcribe-btn')) {
+    const id = parseInt(btn.dataset.id);
+    transcribeSingle(id);
+    return;
+  }
+
+  // Delete row
+  if (btn.classList.contains('del') || btn.closest('.del')) {
+    const id = parseInt((btn.dataset.id || btn.closest('[data-id]')?.dataset.id));
+    voicemails = voicemails.filter(v => v.id !== id);
+    if (!voicemails.length) { hideDashboard(); }
+    else render();
+    updateStats();
+    return;
+  }
+
+  // Row checkbox
+  if (btn.classList.contains('row-check')) {
+    updateSelCount();
+  }
+});
+
+document.getElementById('check-all').addEventListener('change', e => {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = e.target.checked);
+  updateSelCount();
+});
+
+function updateSelCount() {
+  const n = document.querySelectorAll('.row-check:checked').length;
+  document.getElementById('sb-sel').style.display = n ? '' : 'none';
+  document.getElementById('sb-sel-count').textContent = n;
+}
+
+// ── SEARCH & SORT ──────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  render();
+});
+
+document.getElementById('sort-select').addEventListener('change', () => render());
+
+// ── EXPORT CSV ─────────────────────────────────────────────────────────────
+document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+
+function exportCSV() {
+  if (!voicemails.length) { toast('Nothing to export', 'warn'); return; }
+  const cols = ['#','Filename','Size','Transcript','Caller / Label','Notes','Status'];
+  const rows = [cols, ...voicemails.map((vm,i) => [
+    i+1,
+    vm.filename,
+    vm.sizeLabel,
+    vm.transcript,
+    vm.caller,
+    vm.notes,
+    vm.status
+  ])];
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'voxlog_export.csv' });
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${voicemails.length} rows to CSV`);
+}
+
+// ── CLEAR ──────────────────────────────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear all voicemails from the dashboard?')) return;
+  voicemails = [];
+  hideDashboard();
+  toast('Dashboard cleared');
+  document.getElementById('transcribe-all-btn').disabled = true;
+  document.getElementById('export-csv-btn').disabled = true;
+  document.getElementById('clear-btn').disabled = true;
+});
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total    = voicemails.length;
+  const reviewed = voicemails.filter(v => v.status === 'reviewed' || v.status === 'actioned').length;
+  const pending  = voicemails.filter(v => v.status === 'new').length;
+  document.getElementById('stat-total').textContent    = total;
+  document.getElementById('stat-reviewed').textContent = reviewed;
+  document.getElementById('stat-pending').textContent  = pending;
+  document.getElementById('sb-files').textContent = `${total} file(s) loaded`;
+}
+
+// ── UI HELPERS ─────────────────────────────────────────────────────────────
+function showDashboard() {
+  document.getElementById('drop-zone').style.display = 'none';
+  document.getElementById('dashboard').classList.add('visible');
+}
+function hideDashboard() {
+  document.getElementById('drop-zone').style.display = '';
+  document.getElementById('dashboard').classList.remove('visible');
+  updateStats();
+  document.getElementById('sb-files').textContent = 'No files loaded';
+}
+
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function generateDemoTranscript(filename) {
+  const demos = [
+    "Hi, this is Sarah from Midwest Insurance. I'm calling about claim number 4-4-7-8-2. Please call me back at your earliest convenience at 402-555-0147. Thank you.",
+    "Yeah, uh, this message is for the claims department. My name is Robert Benson, B-E-N-S-O-N. I had an accident on the fourteenth and I need to talk to someone about my policy. My number is 402-555-0293. Thanks.",
+    "Hello, I'm trying to reach the policy renewal team. This is Margaret Cho. My policy number is NE-2024-88821 and it's up for renewal next month. Please give me a call back. My number is 531-555-0076.",
+    "This is a message for IT support. We're having trouble accessing the shared drive this morning. Several people in our office can't log in. Please respond urgently. Extension 247, thank you.",
+    "Hi there, I'm calling to request a copy of my certificate of insurance. My name is James Whitfield and my account number is 00-47821. My email is on file. Thanks very much.",
+    "Hello, I was transferred here from the main line. I'm looking for information on commercial property coverage for a small business. If someone could call me back that would be great. This is Tom, 402-555-0388.",
+    "[Inaudible for first few seconds] — and so I just wanted to follow up on that email I sent last Tuesday. Thanks, bye."
+  ];
+  return demos[Math.floor(Math.random() * demos.length)];
+}
+</script>
+</body>
+</html>
