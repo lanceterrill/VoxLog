@@ -1106,13 +1106,11 @@ async function extractMetadata(transcript, filename) {
         .replace(/(?:please have|have)\s+[A-Za-z]+\s+(?:call|return)/gi, '');
 
       const patterns = [
-        // Explicit self-identification — highest confidence
-        /(?:this is|it'?s)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,1})/i,
-        /my name'?s?\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,1})/i,
-        // "Hi, Bob here"
-        /^(?:hi|hello|hey)[,.]?\s+([A-Za-z]+)\s+here/i,
-        // Last resort: first word after greeting
-        /^(?:hi|hello|hey)[,!.]?\s+(?:this is\s+)?([A-Za-z]{2,})/i,
+        // Only hard explicit self-identification — no guessing
+        /(?:this is|it'?s)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,1})(?:\s*[,.]|\s+(?:calling|here|from|and|with))/i,
+        /(?:this is|it'?s)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,1})\s*$/im,
+        /my name(?:'?s|\s+is)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,1})/i,
+        /^([A-Za-z]+(?:\s+[A-Za-z]+){0,1})\s+here[,.]?\s/i,
       ];
       const skip = new Set(['the','a','an','here','there','calling','leaving','just','trying','regarding','about','i','you','we','they','he','she','it','is','my','your','our','their','with','and','or','to','from','for','at','of']);
       for (const re of patterns) {
@@ -1140,7 +1138,7 @@ async function extractMetadata(transcript, filename) {
         temperature: 0,
         messages: [{
           role: 'system',
-          content: 'You extract info from voicemail transcripts.\n\nCRITICAL RULE for "caller": You want the name of the PERSON SPEAKING — the one who recorded this message and left it. NOT the person they are calling for, NOT the person they are trying to reach, NOT the name they say after "for" or "to reach" or "trying to get a hold of" or "asking for".\n\nExamples:\n- "Hi this is Bob" → caller: "Bob" ✓\n- "Hey it\'s Sarah, calling for John" → caller: "Sarah" ✓ (not John)\n- "This is Mike from Acme, trying to reach Lisa" → caller: "Mike" ✓ (not Lisa)\n- "Please have Tom call me back" → caller: "" (we only hear them say Tom, not their own name)\n- "Hi, my name is Dave" → caller: "Dave" ✓\n\nRules:\n- caller: ONLY the name the speaker uses to identify THEMSELVES. Can be just a first name. Empty string if not clearly stated.\n- phone: callback number they leave. Digits and dashes only like 402-555-0147. Empty string if none.\n- calldate: any date or time they mention. Empty string if none.\n\nReturn ONLY raw JSON, no markdown: {"caller":"","phone":"","calldate":""}'
+          content: 'Extract info from a voicemail transcript.\n\nRules:\n- caller: ONLY fill this if the speaker EXPLICITLY states their own name using phrases like "this is [name]", "it\'s [name]", "my name is [name]", "[name] here". If there is ANY doubt, return "". Do NOT guess. Do NOT use names mentioned after "for", "to reach", "trying to get", "calling for", "have [name] call me", or similar. When in doubt, leave blank.\n- phone: callback number the speaker leaves for a return call. Digits and dashes only, e.g. 402-555-0147. Empty string if none.\n- calldate: any date or time they mention. Empty string if none.\n\nReturn ONLY raw JSON, no markdown, no explanation: {"caller":"","phone":"","calldate":""}'
         }, {
           role: 'user',
           content: 'Transcript: ' + transcript
