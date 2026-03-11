@@ -114,6 +114,9 @@
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
   .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
   .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-warning { background: var(--warn); color: #000; border-color: var(--warn); font-weight: 600; }
+  .btn-warning:hover { background: #ffc107; border-color: #ffc107; }
+  .btn-warning:disabled { opacity: .4; cursor: not-allowed; }
   .btn:disabled { opacity: .4; cursor: not-allowed; }
 
   .toolbar-sep { width: 1px; height: 28px; background: var(--border); }
@@ -829,8 +832,8 @@
 
     <button class="btn btn-secondary" id="transcribe-all-btn" disabled>⚡ Transcribe All</button>
     <button class="btn btn-secondary" id="export-csv-btn" disabled>⬇ Export CSV</button>
-    <button class="btn btn-secondary" id="save-db-btn"     disabled>💾 Save .db</button>
-    <button class="btn btn-secondary" id="load-db-btn">📂 Load .db</button>
+    <button class="btn btn-warning"   id="save-db-btn"     disabled>💾 Backup</button>
+    <button class="btn btn-secondary" id="load-db-btn">📂 Load Backup</button>
     <input type="file" id="db-file-input" accept=".db" style="display:none">
     <button class="btn btn-danger"    id="clear-btn"       disabled>✕ Clear All</button>
 
