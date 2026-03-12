@@ -1121,7 +1121,9 @@ async function extractMetadata(transcript, filename) {
       // 2. Explicit name self-ID patterns
       const namePatterns = [
         /\bthis is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
+        /\bit'?s\s+me,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
         /\bit'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s*[,.]|\s+(?:calling|here|from|speaking))/i,
+        /\bhey,?\s+it'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
         /\bmy name(?:'?s|\s+is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
         /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:here|calling|speaking|over here)\b/,
       ];
@@ -1163,7 +1165,7 @@ async function extractMetadata(transcript, filename) {
         temperature: 0,
         messages: [{
           role: 'system',
-          content: 'Extract caller identity from a voicemail. Return ONLY raw JSON: {"caller":"","phone":"","calldate":""}. No markdown.\n\nFor CALLER use the best identifier in this priority:\n1. Name + org/place: return \"Name @ Place\" e.g. \"Stuart @ Broadcast House\"\n2. Name only: return the name e.g. \"Stuart\"\n3. No name but org/company/place: return \"[Org]\" e.g. \"[Broadcast House]\"\n4. No name but dept: return \"[Billing Dept]\" etc\n5. No name but role: return \"[Your Insurance Agent]\" etc\n6. Nothing clear: return \"\"\n\nValid self-ID patterns: \"this is X\", \"it\'s X\", \"my name is X\", \"X here\", \"X calling\", \"X speaking\", \"X over here\", \"X over here at Y\", \"X calling from Y\"\n\nNEVER use names after: \"for\", \"to reach\", \"trying to reach\", \"calling for\", \"Hey X\" (greeting), \"have X call\", \"please tell X\" — those are recipients not callers.\n\nFor PHONE: callback number left. Digits and dashes only. Empty if none.\nFor CALLDATE: any date/time mentioned. Empty if none.'
+          content: 'Extract caller identity from a voicemail. Return ONLY raw JSON: {"caller":"","phone":"","calldate":""}. No markdown.\n\nFor CALLER use the best identifier in this priority:\n1. Name + org/place: return \"Name @ Place\" e.g. \"Stuart @ Broadcast House\"\n2. Name only: return the name e.g. \"Stuart\"\n3. No name but org/company/place: return \"[Org]\" e.g. \"[Broadcast House]\"\n4. No name but dept: return \"[Billing Dept]\" etc\n5. No name but role: return \"[Your Insurance Agent]\" etc\n6. Nothing clear: return \"\"\n\nValid self-ID patterns: \"this is X\", \"it\'s X\", \"it\'s me, X\", \"hey it\'s X\", \"hey, it\'s me X\", \"my name is X\", \"X here\", \"X calling\", \"X speaking\", \"X over here\", \"X over here at Y\", \"X calling from Y\". For informal patterns like \"it\'s me, X\" or \"hey it\'s me, X\", the name follows \"me\".\n\nNEVER use names after: \"for\", \"to reach\", \"trying to reach\", \"calling for\", \"Hey X\" (greeting), \"have X call\", \"please tell X\" — those are recipients not callers.\n\nFor PHONE: callback number left. Digits and dashes only. Empty if none.\nFor CALLDATE: any date/time mentioned. Empty if none.'
         }, {
           role: 'user',
           content: 'Transcript: ' + transcript
