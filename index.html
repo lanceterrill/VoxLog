@@ -1121,9 +1121,10 @@ async function extractMetadata(transcript, filename) {
       // 2. Explicit name self-ID patterns
       const namePatterns = [
         /\bthis is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
+        /\bhey,?\s+it'?s\s+me,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
         /\bit'?s\s+me,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-        /\bit'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s*[,.]|\s+(?:calling|here|from|speaking))/i,
         /\bhey,?\s+it'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /\bit'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s*[,.]|\s+(?:calling|here|from|speaking))/i,
         /\bmy name(?:'?s|\s+is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
         /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:here|calling|speaking|over here)\b/,
       ];
