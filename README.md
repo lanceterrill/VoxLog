@@ -32,7 +32,7 @@ VoxLog lets you drop a folder of `.wav` voicemail recordings into a browser, tra
 
 ## Quick Start
 
-1. Open `voicemail-dashboard.html` in your browser
+1. Open `[https://lanceterrill.github.io/VoxLog/]` in your browser
 2. Enter your Groq API key in the modal (or click **Skip** for demo mode)
 3. Click **📁 Load WAV Files** or drag-and-drop `.wav` files onto the drop zone
 4. Click **⚡ Transcribe All** — each file is sent to Groq Whisper
