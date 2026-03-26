@@ -912,6 +912,9 @@
             <th data-col="calldate">Call Date/Time</th>
             <th data-col="filename">Filename</th>
             <th data-col="transcript">Transcription</th>
+            <th data-col="callback">Date/Time Callback</th>
+            <th data-col="description">Description</th>
+            <th data-col="staffname">Staff Name</th>
             <th data-col="notes">Notes</th>
             <th data-col="status">Status</th>
             <th>Actions</th>
@@ -1032,6 +1035,9 @@ function handleFiles(files) {
       caller: '',
       phone: '',
       calldate: parsedDate,
+      callback: '',
+      description: '',
+      staffname: '',
       notes: '',
       status: 'pending',
       transcribing: false
@@ -1268,6 +1274,9 @@ function render() {
       (v.caller||'').toLowerCase().includes(q) ||
       (v.phone||'').toLowerCase().includes(q) ||
       (v.calldate||'').toLowerCase().includes(q) ||
+      (v.callback||'').toLowerCase().includes(q) ||
+      (v.description||'').toLowerCase().includes(q) ||
+      (v.staffname||'').toLowerCase().includes(q) ||
       (v.notes||'').toLowerCase().includes(q)
     );
   }
@@ -1293,7 +1302,7 @@ function render() {
   tbody.innerHTML = '';
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">No voicemails match your search</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="13">No voicemails match your search</td></tr>`;
     return;
   }
 
@@ -1321,6 +1330,15 @@ function render() {
           ? `<span class="transcribing-cell"><span class="spinner"></span>Transcribing…</span>`
           : `<div class="editable" contenteditable="true" data-field="transcript" data-id="${vm.id}" placeholder="Click ⚡ or type…">${escHtml(vm.transcript)}</div>`
         }
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="callback" data-id="${vm.id}" placeholder="Add callback date/time…">${escHtml(vm.callback||'')}</div>
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="description" data-id="${vm.id}" placeholder="Add description…">${escHtml(vm.description||'')}</div>
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="staffname" data-id="${vm.id}" placeholder="Staff name…">${escHtml(vm.staffname||'')}</div>
       </td>
       <td class="td-notes">
         <div class="editable" contenteditable="true" data-field="notes" data-id="${vm.id}" placeholder="Add notes…">${escHtml(vm.notes||'')}</div>
@@ -1434,14 +1452,14 @@ function saveDB() {
     id INTEGER PRIMARY KEY,
     filename TEXT, size INTEGER, sizeLabel TEXT,
     phone TEXT, caller TEXT, calldate TEXT,
-    transcript TEXT, notes TEXT, status TEXT
+    transcript TEXT, callback TEXT, description TEXT, staffname TEXT, notes TEXT, status TEXT
   )`);
 
-  const stmt = db.prepare(`INSERT INTO voicemails VALUES (?,?,?,?,?,?,?,?,?,?)`);
+  const stmt = db.prepare(`INSERT INTO voicemails VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   voicemails.forEach(vm => {
     stmt.run([vm.id, vm.filename, vm.size, vm.sizeLabel,
               vm.phone||'', vm.caller||'', vm.calldate||'',
-              vm.transcript||'', vm.notes||'', vm.status||'pending']);
+              vm.transcript||'', vm.callback||'', vm.description||'', vm.staffname||'', vm.notes||'', vm.status||'pending']);
   });
   stmt.free();
 
@@ -1461,14 +1479,14 @@ async function loadDB(file) {
     const buf = await file.arrayBuffer();
     const db  = new SQL.Database(new Uint8Array(buf));
 
-    const rows = db.exec(`SELECT id,filename,size,sizeLabel,phone,caller,calldate,transcript,notes,status FROM voicemails ORDER BY id`);
+    const rows = db.exec(`SELECT id,filename,size,sizeLabel,phone,caller,calldate,transcript,callback,description,staffname,notes,status FROM voicemails ORDER BY id`);
     db.close();
 
     if (!rows.length || !rows[0].values.length) { toast('No voicemail records found in .db', 'warn'); return; }
 
     voicemails = rows[0].values.map(r => ({
       id:         r[0],
-      file:       null,           // original File object not stored in db
+      file:       null,
       filename:   r[1] || '',
       size:       r[2] || 0,
       sizeLabel:  r[3] || '',
@@ -1476,8 +1494,11 @@ async function loadDB(file) {
       caller:     r[5] || '',
       calldate:   r[6] || '',
       transcript: r[7] || '',
-      notes:      r[8] || '',
-      status:     r[9] || 'pending',
+      callback:   r[8] || '',
+      description:r[9] || '',
+      staffname:  r[10] || '',
+      notes:      r[11] || '',
+      status:     r[12] || 'pending',
       transcribing: false
     }));
 
@@ -1502,7 +1523,7 @@ document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
 
 function exportCSV() {
   if (!voicemails.length) { toast('Nothing to export', 'warn'); return; }
-  const cols = ['#','Phone Number','Caller Name','Call Date/Time','Filename','Transcription','Notes','Status'];
+  const cols = ['#','Phone Number','Caller Name','Call Date/Time','Filename','Transcription','Date/Time Callback','Description','Staff Name','Notes','Status'];
   const rows = [cols, ...voicemails.map((vm,i) => [
     i+1,
     vm.phone||'',
@@ -1510,6 +1531,9 @@ function exportCSV() {
     vm.calldate||'',
     vm.filename,
     vm.transcript,
+    vm.callback||'',
+    vm.description||'',
+    vm.staffname||'',
     vm.notes||'',
     vm.status
   ])];
