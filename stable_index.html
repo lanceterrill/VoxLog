@@ -295,24 +295,6 @@
   .td-phone    { font-family: var(--mono); font-size: 12px; white-space: nowrap; min-width: 130px; }
   .td-calldate { font-family: var(--mono); font-size: 12px; white-space: nowrap; min-width: 130px; color: var(--muted); }
 
-  input.date-input {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 2px 4px;
-    cursor: pointer;
-    outline: none;
-    width: 130px;
-    transition: border-color .15s, background .15s;
-    color-scheme: dark;
-  }
-  [data-theme="light"] input.date-input { color-scheme: light; }
-  input.date-input:hover { border-color: var(--border2); background: var(--surface); }
-  input.date-input:focus { border-color: var(--accent2); background: var(--surface); }
-
   .td-filename {
     font-family: var(--mono);
     font-size: 12px;
@@ -374,17 +356,18 @@
 
   .status-select {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 3px;
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 2px 6px;
     outline: none;
     color: inherit;
-    width: auto;
-    min-width: 90px;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
   }
 
   /* Action icons */
@@ -705,7 +688,6 @@
       <button class="help-tab" data-tab="editing">Editing</button>
       <button class="help-tab" data-tab="save-load">Save &amp; Load</button>
       <button class="help-tab" data-tab="export">Export</button>
-      <button class="help-tab" data-tab="push">Push to List</button>
     </div>
 
     <div class="help-body">
@@ -732,10 +714,9 @@
           <tr><td>📁 Load WAV Files</td><td>Opens file picker — select one or many <b>.wav</b> files. You can also drag-and-drop files onto the main drop zone.</td></tr>
           <tr><td>⚡ Transcribe All</td><td>Sends all un-transcribed files to Groq Whisper, then extracts caller name, phone, and date automatically via AI.</td></tr>
           <tr><td>⬇ Export CSV</td><td>Downloads all rows as a <b>.csv</b> spreadsheet with every column. Opens in Excel, Google Sheets, etc.</td></tr>
-          <tr><td>💾 Backup</td><td>Saves everything to a real SQLite <b>.db</b> file you can reload next session.</td></tr>
-          <tr><td>📂 Load Backup</td><td>Restores a previously saved <b>voxlog.db</b> — brings back all records, edits, and statuses.</td></tr>
+          <tr><td>💾 Save .db</td><td>Saves everything to a real SQLite <b>.db</b> file you can reload next session.</td></tr>
+          <tr><td>📂 Load .db</td><td>Restores a previously saved <b>voxlog.db</b> — brings back all records, edits, and statuses.</td></tr>
           <tr><td>✕ Clear All</td><td>Wipes the dashboard. Prompts for confirmation first.</td></tr>
-          <tr><td>📤 Push to List</td><td>Exports unpushed records as JSON and opens Outlook to send to the VoxLog Microsoft List via Power Automate.</td></tr>
         </table>
 
         <h3>Sorting &amp; Search</h3>
@@ -749,19 +730,15 @@
       <!-- EDITING -->
       <div class="help-section" id="tab-editing">
         <h3>Editable Columns</h3>
-        <p>Every data cell in the table can be edited directly. Click any cell to start typing. Date and time fields use pickers.</p>
+        <p>Every data cell in the table can be edited directly. Click any cell to start typing.</p>
         <table class="help-table">
           <tr><th>Column</th><th>Auto-filled?</th><th>Notes</th></tr>
-          <tr><td>Phone Number</td><td>✓ from transcript</td><td>The callback number the caller mentions. Primary sort key.</td></tr>
-          <tr><td>Caller Name</td><td>✓ from transcript</td><td>Name extracted by AI. Works with single names like "Bob".</td></tr>
-          <tr><td>Call Date</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with date picker.</td></tr>
-          <tr><td>Call Time</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with time picker.</td></tr>
-          <tr><td>Filename</td><td>—</td><td>Original .wav filename. Editable label for display purposes.</td></tr>
-          <tr><td>Transcription</td><td>✓ via Whisper</td><td>Full verbatim transcript. Editable — fix errors or add context.</td></tr>
-          <tr><td>Staff Name</td><td>—</td><td>Staff member handling the callback. Free text.</td></tr>
-          <tr><td>Returned Date</td><td>—</td><td>Date the call was returned. Set with date picker.</td></tr>
-          <tr><td>Returned Time</td><td>—</td><td>Time the call was returned. Set with time picker.</td></tr>
-          <tr><td>Notes</td><td>—</td><td>Free-form notes — follow-up actions, priority flags, etc.</td></tr>
+          <tr><td>Phone Number</td><td>✓ from transcript</td><td>The <b>callback number</b> the caller mentions in the message. Primary sort key.</td></tr>
+          <tr><td>Caller Name</td><td>✓ from transcript</td><td>First or full name extracted by AI. Works with single names like "Bob".</td></tr>
+          <tr><td>Call Date/Time</td><td>✓ from filename</td><td>Parsed from filename timestamps (e.g. <span class="kbd">20240314_1430.wav</span>) or from spoken date in transcript.</td></tr>
+          <tr><td>Filename</td><td>—</td><td>Read-only display of the original file name.</td></tr>
+          <tr><td>Transcription</td><td>✓ via Whisper</td><td>Full verbatim transcript. Editable — fix errors or add context directly.</td></tr>
+          <tr><td>Notes</td><td>—</td><td>Free-form notes field. Type anything — follow-up actions, priority flags, etc.</td></tr>
         </table>
 
         <h3>Status Dropdown</h3>
@@ -769,12 +746,10 @@
         <table class="help-table">
           <tr><td style="color:var(--accent2)">Pending</td><td>Default for all new voicemails. Not yet reviewed.</td></tr>
           <tr><td style="color:var(--warn)">In Progress</td><td>Being worked on — follow-up in progress.</td></tr>
-          <tr><td style="color:#ff69b4">Review</td><td>Needs supervisor review before closing.</td></tr>
           <tr><td style="color:var(--accent)">Done</td><td>Resolved / no further action needed.</td></tr>
-          <tr><td style="color:var(--danger)">Unreachable</td><td>Unable to reach caller after attempts.</td></tr>
         </table>
 
-        <div class="tip-box"><b>Tip:</b> A green <b>✓</b> in the Actions column means that record has already been pushed to the Microsoft List.</div>
+        <div class="tip-box"><b>Tip:</b> After transcribing, quickly scan the Caller and Phone columns — the AI fills these in automatically but you can correct anything it missed. Changes are saved next time you click 💾 Save .db.</div>
       </div>
 
       <!-- SAVE & LOAD -->
@@ -841,42 +816,6 @@
         </table>
       </div>
 
-      <!-- PUSH TO LIST -->
-      <div class="help-section" id="tab-push">
-        <h3>Overview</h3>
-        <p>Push to List syncs transcribed voicemail records directly into the <b>VoxLog Microsoft List</b> in Teams via a Power Automate flow. Only records that haven't been pushed yet are included each time.</p>
-
-        <h3>How to Push</h3>
-        <ol class="help-steps">
-          <li>Click <b>📤 Push to List</b> in the toolbar. A JSON file downloads automatically — find it in your Downloads folder.</li>
-          <li>Click <b>✉️ Open Outlook Email</b> in the modal that appears. Outlook opens with <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6c282325423f24253c2c02090e1e0d1f070d420b031a">[email&#160;protected]</a></b> pre-filled and subject set to <b>VoxLog List Sync</b>.</li>
-          <li>Make sure the <b>From</b> field shows your personal account (<b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="85c9e4ebe6e0abd1e0f7f7ece9e9c5ebe0e7f7e4f6eee4abe2eaf3">[email&#160;protected]</a></b>), not the shared mailbox. Switch it if needed.</li>
-          <li>Attach the downloaded JSON file to the email and click <b>Send</b>.</li>
-          <li>Power Automate picks it up within a minute and creates items in the VoxLog List.</li>
-        </ol>
-
-        <h3>Pushed Status</h3>
-        <p>Records that have been pushed show a green <b>✓</b> in the Actions column. They won't be included in future Push exports unless you reload from a .db that predates the push.</p>
-
-        <h3>Field Mapping</h3>
-        <table class="help-table">
-          <tr><th>VoxLog Column</th><th>List Column</th></tr>
-          <tr><td>Caller Name</td><td>CallerName</td></tr>
-          <tr><td>Phone Number</td><td>PhoneNumber</td></tr>
-          <tr><td>Call Date</td><td>CallDate</td></tr>
-          <tr><td>Call Time</td><td>CallTime</td></tr>
-          <tr><td>Transcription</td><td>Transcription</td></tr>
-          <tr><td>Staff Name</td><td>StaffName</td></tr>
-          <tr><td>Returned Date</td><td>ReturnedCallDate</td></tr>
-          <tr><td>Returned Time</td><td>ReturnedCallTime</td></tr>
-          <tr><td>Notes</td><td>Notes</td></tr>
-          <tr><td>Status</td><td>Status</td></tr>
-          <tr><td>Filename</td><td>OriginalFilename</td></tr>
-        </table>
-
-        <div class="warn-box"><b>Important:</b> Do not change the email subject line — Power Automate filters on <b>VoxLog List Sync</b> exactly. Changing it will cause the flow to ignore the email.</div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -928,7 +867,6 @@
     <button class="btn btn-secondary" id="load-db-btn">📂 Load Backup</button>
     <input type="file" id="db-file-input" accept=".db" style="display:none">
     <button class="btn btn-danger"    id="clear-btn"       disabled>✕ Clear All</button>
-    <button class="btn btn-secondary" id="push-list-btn"   disabled style="border-color:var(--accent2); color:var(--accent2);">📤 Push to List</button>
 
     <div class="toolbar-sep"></div>
 
@@ -972,13 +910,12 @@
             <th class="td-num">#</th>
             <th data-col="phone">Phone Number</th>
             <th data-col="caller">Caller Name</th>
-            <th data-col="calldate">Call Date</th>
-            <th data-col="calltime">Call Time</th>
+            <th data-col="calldate">Call Date/Time</th>
             <th data-col="filename">Filename</th>
             <th data-col="transcript">Transcription</th>
+            <th data-col="callback">Date/Time Callback</th>
+            <th data-col="description">Description</th>
             <th data-col="staffname">Staff Name</th>
-            <th data-col="retdate">Returned Date</th>
-            <th data-col="rettime">Returned Time</th>
             <th data-col="notes">Notes</th>
             <th data-col="status">Status</th>
             <th>Actions</th>
@@ -998,31 +935,10 @@
   </div>
 </div>
 
-<!-- Push to List Modal -->
-<div class="modal-overlay hidden" id="push-modal">
-  <div class="modal" style="max-width:480px;">
-    <h2>📤 Push to List</h2>
-    <p style="margin:14px 0 6px; color:var(--muted); font-size:13px; line-height:1.6;">
-      <b style="color:var(--text)" id="push-count-label">0 records</b> exported as <code style="color:var(--accent2)" id="push-filename-label">voxlog_listsync.json</code>.<br><br>
-      To sync to the VoxLog Microsoft List:<br>
-    </p>
-    <ol style="margin:10px 0 16px 18px; color:var(--muted); font-size:13px; line-height:1.9;">
-      <li>The JSON file was just downloaded — find it in your Downloads folder</li>
-      <li>Click <b style="color:var(--text)">Open Outlook Email</b> below</li>
-      <li>Attach the downloaded JSON file to the email</li>
-      <li>Send — Power Automate will handle the rest</li>
-    </ol>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" id="push-close-btn">Close</button>
-      <button class="btn btn-primary" id="push-outlook-btn">✉️ Open Outlook Email</button>
-    </div>
-  </div>
-</div>
-
 <!-- Toast -->
 <div id="toast-container"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ── THEME TOGGLE ───────────────────────────────────────────────────────────
 (function() {
   const root = document.documentElement;
@@ -1056,8 +972,8 @@ initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10
 // ── INIT ───────────────────────────────────────────────────────────────────
 document.getElementById('save-api-btn').addEventListener('click', () => {
   const val = document.getElementById('api-key-input').value.trim();
-  if (!val || val.length < 10) {
-    toast('Enter a valid Groq API key', 'error');
+  if (!val.startsWith('gsk_') || val.length < 10) {
+    toast('Enter a valid Groq API key (starts with gsk_)', 'error');
     return;
   }
   apiKey = val;
@@ -1106,39 +1022,26 @@ dropZone.addEventListener('drop', e => {
   handleFiles(files);
 });
 
-function uniqueLabel(originalName) {
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `${ts}_${originalName}`;
-}
-
 function handleFiles(files) {
   const wavFiles = files.filter(f => f.name.toLowerCase().endsWith('.wav') || f.type.startsWith('audio/'));
   if (!wavFiles.length) { toast('No .wav files found', 'warn'); return; }
 
   let added = 0, skipped = 0;
   wavFiles.forEach(file => {
-    // Deduplicate on size + lastModified — truly identical files only
-    if (voicemails.find(v => v.size === file.size && v.lastModified === file.lastModified)) { skipped++; return; }
+    // deduplicate
+    if (voicemails.find(v => v.filename === file.name && v.size === file.size)) { skipped++; return; }
     const parsedDate = parseDateFromFilename(file.name);
-    const label = uniqueLabel(file.name);
     voicemails.push({
       id: nextId++,
       file,
-      filename:     file.name,   // original name → OriginalFilename in List
-      label,                     // timestamped unique label → displayed in dashboard
-      size:         file.size,
-      lastModified: file.lastModified,
-      sizeLabel:    formatBytes(file.size),
+      filename: file.name,
+      label: file.name,
+      size: file.size,
+      sizeLabel: formatBytes(file.size),
       transcript: '',
       caller: '',
       phone: '',
       calldate: parsedDate,
-      calltime: '',
-      retdate:  '',
-      rettime:  '',
-      pushed:   false,
       callback: '',
       description: '',
       staffname: '',
@@ -1189,12 +1092,6 @@ async function transcribeBatch(items) {
         if (meta.caller)   vm.caller   = meta.caller;
         if (meta.phone)    vm.phone    = meta.phone;
         if (meta.calldate && !vm.calldate) vm.calldate = meta.calldate;
-      }
-      // Stamp transcription date/time if still blank
-      if (!vm.calldate || !vm.calltime) {
-        const now = new Date();
-        if (!vm.calldate) vm.calldate = now.toISOString().slice(0, 10);
-        if (!vm.calltime) vm.calltime = now.toTimeString().slice(0, 5); // HH:MM
       }
     } catch(e) {
       vm.transcript = `[Error: ${e.message}]`;
@@ -1415,7 +1312,7 @@ function render() {
   tbody.innerHTML = '';
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="15">No voicemails match your search</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="13">No voicemails match your search</td></tr>`;
     return;
   }
 
@@ -1435,10 +1332,7 @@ function render() {
         <div class="editable" contenteditable="true" data-field="caller" data-id="${vm.id}" placeholder="—">${escHtml(vm.caller||'')}</div>
       </td>
       <td class="td-calldate">
-        <input type="date" class="date-input" data-field="calldate" data-id="${vm.id}" value="${vm.calldate||''}">
-      </td>
-      <td class="td-calldate">
-        <input type="time" class="date-input" data-field="calltime" data-id="${vm.id}" value="${vm.calltime||''}">
+        <div class="editable" contenteditable="true" data-field="calldate" data-id="${vm.id}" placeholder="—">${escHtml(vm.calldate||'')}</div>
       </td>
       <td class="td-filename">
         <div class="editable" contenteditable="true" data-field="label" data-id="${vm.id}" placeholder="—">${escHtml(vm.label||vm.filename||'')}</div>
@@ -1450,13 +1344,13 @@ function render() {
         }
       </td>
       <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="callback" data-id="${vm.id}" placeholder="Add callback date/time…">${escHtml(vm.callback||'')}</div>
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="description" data-id="${vm.id}" placeholder="Add description…">${escHtml(vm.description||'')}</div>
+      </td>
+      <td class="td-notes">
         <div class="editable" contenteditable="true" data-field="staffname" data-id="${vm.id}" placeholder="Staff name…">${escHtml(vm.staffname||'')}</div>
-      </td>
-      <td class="td-calldate">
-        <input type="date" class="date-input" data-field="retdate" data-id="${vm.id}" value="${vm.retdate||''}">
-      </td>
-      <td class="td-calldate">
-        <input type="time" class="date-input" data-field="rettime" data-id="${vm.id}" value="${vm.rettime||''}">
       </td>
       <td class="td-notes">
         <div class="editable" contenteditable="true" data-field="notes" data-id="${vm.id}" placeholder="Add notes…">${escHtml(vm.notes||'')}</div>
@@ -1473,7 +1367,6 @@ function render() {
         </span>
       </td>
       <td class="td-actions">
-        ${vm.pushed ? `<span title="Pushed to List" style="color:var(--accent);font-size:13px;">✓</span>` : ''}
         ${!vm.transcript && !vm.transcribing
           ? `<button class="icon-btn transcribe-btn" data-id="${vm.id}" title="Transcribe this file">⚡</button>`
           : ''
@@ -1495,11 +1388,6 @@ document.getElementById('table-body').addEventListener('input', e => {
     const field = el.dataset.field;
     const vm = voicemails.find(v => v.id === id);
     if (vm) { vm[field] = el.innerText.trim(); updateStats(); }
-  }
-  if (el.classList.contains('date-input')) {
-    const id = parseInt(el.dataset.id);
-    const vm = voicemails.find(v => v.id === id);
-    if (vm) { vm[el.dataset.field] = el.value; }
   }
 });
 
@@ -1576,18 +1464,16 @@ function saveDB() {
   const db = new SQL.Database();
   db.run(`CREATE TABLE voicemails (
     id INTEGER PRIMARY KEY,
-    filename TEXT, label TEXT, size INTEGER, sizeLabel TEXT, lastModified INTEGER,
-    phone TEXT, caller TEXT, calldate TEXT, calltime TEXT,
-    retdate TEXT, rettime TEXT, pushed INTEGER,
-    transcript TEXT, staffname TEXT, notes TEXT, status TEXT
+    filename TEXT, label TEXT, size INTEGER, sizeLabel TEXT,
+    phone TEXT, caller TEXT, calldate TEXT,
+    transcript TEXT, callback TEXT, description TEXT, staffname TEXT, notes TEXT, status TEXT
   )`);
 
-  const stmt = db.prepare(`INSERT INTO voicemails VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const stmt = db.prepare(`INSERT INTO voicemails VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   voicemails.forEach(vm => {
-    stmt.run([vm.id, vm.filename, vm.label||vm.filename, vm.size, vm.sizeLabel, vm.lastModified||0,
-              vm.phone||'', vm.caller||'', vm.calldate||'', vm.calltime||'',
-              vm.retdate||'', vm.rettime||'', vm.pushed ? 1 : 0,
-              vm.transcript||'', vm.staffname||'', vm.notes||'', vm.status||'pending']);
+    stmt.run([vm.id, vm.filename, vm.label||vm.filename, vm.size, vm.sizeLabel,
+              vm.phone||'', vm.caller||'', vm.calldate||'',
+              vm.transcript||'', vm.callback||'', vm.description||'', vm.staffname||'', vm.notes||'', vm.status||'pending']);
   });
   stmt.free();
 
@@ -1607,30 +1493,27 @@ async function loadDB(file) {
     const buf = await file.arrayBuffer();
     const db  = new SQL.Database(new Uint8Array(buf));
 
-    const rows = db.exec(`SELECT id,filename,label,size,sizeLabel,lastModified,phone,caller,calldate,calltime,retdate,rettime,pushed,transcript,staffname,notes,status FROM voicemails ORDER BY id`);
+    const rows = db.exec(`SELECT id,filename,label,size,sizeLabel,phone,caller,calldate,transcript,callback,description,staffname,notes,status FROM voicemails ORDER BY id`);
     db.close();
 
     if (!rows.length || !rows[0].values.length) { toast('No voicemail records found in .db', 'warn'); return; }
 
     voicemails = rows[0].values.map(r => ({
-      id:           r[0],
-      file:         null,
-      filename:     r[1] || '',
-      label:        r[2] || r[1] || '',
-      size:         r[3] || 0,
-      sizeLabel:    r[4] || '',
-      lastModified: r[5] || 0,
-      phone:        r[6] || '',
-      caller:       r[7] || '',
-      calldate:     r[8] || '',
-      calltime:     r[9] || '',
-      retdate:      r[10] || '',
-      rettime:      r[11] || '',
-      pushed:       !!r[12],
-      transcript:   r[13] || '',
-      staffname:    r[14] || '',
-      notes:        r[15] || '',
-      status:       r[16] || 'pending',
+      id:         r[0],
+      file:       null,
+      filename:   r[1] || '',
+      label:      r[2] || r[1] || '',
+      size:       r[3] || 0,
+      sizeLabel:  r[4] || '',
+      phone:      r[5] || '',
+      caller:     r[6] || '',
+      calldate:   r[7] || '',
+      transcript: r[8] || '',
+      callback:   r[9] || '',
+      description:r[10] || '',
+      staffname:  r[11] || '',
+      notes:      r[12] || '',
+      status:     r[13] || 'pending',
       transcribing: false
     }));
 
@@ -1644,7 +1527,6 @@ async function loadDB(file) {
     document.getElementById('export-csv-btn').disabled = false;
     document.getElementById('save-db-btn').disabled = false;
     document.getElementById('clear-btn').disabled = false;
-    document.getElementById('push-list-btn').disabled = false;
     toast(`Loaded ${voicemails.length} records from ${file.name} ✓`);
   } catch(e) {
     toast(`Failed to load .db: ${e.message}`, 'error');
@@ -1689,7 +1571,6 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   document.getElementById('export-csv-btn').disabled = true;
   document.getElementById('save-db-btn').disabled = true;
   document.getElementById('clear-btn').disabled = true;
-  document.getElementById('push-list-btn').disabled = true;
 });
 
 // ── STATS ──────────────────────────────────────────────────────────────────
@@ -1772,57 +1653,7 @@ function generateDemoTranscript(filename) {
   return demos[Math.floor(Math.random() * demos.length)].transcript;
 }
 
-// ── PUSH TO LIST ───────────────────────────────────────────────────────────
-document.getElementById('push-list-btn').addEventListener('click', pushToList);
-document.getElementById('push-close-btn').addEventListener('click', () => {
-  document.getElementById('push-modal').classList.add('hidden');
-});
-document.getElementById('push-outlook-btn').addEventListener('click', () => {
-  window.location.href = 'mailto:DOI.SHIP@nebraska.gov?subject=VoxLog%20List%20Sync&body=VoxLog%20List%20Sync%20export%20attached.%20Do%20not%20modify%20this%20email%20subject.';
-});
-
-function pushToList() {
-  if (!voicemails.length) { toast('No records to push', 'warn'); return; }
-
-  const unpushed = voicemails.filter(vm => !vm.pushed);
-  if (!unpushed.length) { toast('All records already pushed to List ✓', 'warn'); return; }
-
-  const rows = unpushed.map(vm => ({
-    Status:          vm.status   || 'pending',
-    CallDate:        vm.calldate || '',
-    CallTime:        vm.calltime || '',
-    PhoneNumber:     vm.phone    || '',
-    CallerName:      vm.caller   || vm.label || vm.filename || '',
-    Transcription:   vm.transcript || '',
-    StaffName:       vm.staffname  || '',
-    ReturnedCallDate:vm.retdate    || '',
-    ReturnedCallTime:vm.rettime    || '',
-    Notes:           vm.notes      || '',
-    OriginalFilename:vm.filename   || ''
-  }));
-
-  const json     = JSON.stringify(rows, null, 2);
-  const ts       = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-  const filename = `voxlog_listsync_${ts}.json`;
-
-  // Download the file
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
-  a.click();
-  URL.revokeObjectURL(url);
-
-  // Mark as pushed
-  unpushed.forEach(vm => vm.pushed = true);
-  render();
-
-  // Show modal
-  document.getElementById('push-count-label').textContent    = `${rows.length} record${rows.length !== 1 ? 's' : ''}`;
-  document.getElementById('push-filename-label').textContent = filename;
-  document.getElementById('push-modal').classList.remove('hidden');
-}
-
-
+// ── HELP MODAL ─────────────────────────────────────────────────────────────
 document.getElementById('help-btn').addEventListener('click', () => {
   document.getElementById('help-overlay').classList.remove('hidden');
 });
@@ -1834,4 +1665,13 @@ document.getElementById('help-overlay').addEventListener('click', e => {
     document.getElementById('help-overlay').classList.add('hidden');
 });
 document.querySelectorAll('.help-tab').forEach(tab => {
-  tab
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
