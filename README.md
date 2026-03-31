@@ -17,10 +17,10 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                        VOXLOG FLOW                          │
 │                                                             │
-│  🎙️ .wav files  →  ⚡ Whisper AI  →  📋 Dashboard           │
+│  🎙️ .wav files  →  ⚡ Whisper AI  →  📋 Dashboard         │
 │                                                             │
 │  📋 Dashboard   →  📤 Push to List  →  📧 Email            │
-│                                                             │
+│                                                              │
 │  📧 Email       →  🤖 Power Automate  →  📊 MS List        │
 └─────────────────────────────────────────────────────────────┘
 ```
