@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "VoxLog",
+    "version": "1.0.0",
+    "environment": "production"
+  },
+  "transcription": {
+    "provider": "microsoft_ai_builder",
+    "language": "en-US",
+    "audioFormats": ["wav", "mp3"]
+  },
+  "powerAutomate": {
+    "triggerEmail": "DOI.SHIP@nebraska.gov",
+    "listSyncSubject": "VoxLog List Sync",
+    "archivePath": "/VoxLog/Voicemails/"
+  },
+  "storage": {
+    "type": "sqlite",
+    "filename": "voxlog.db",
+    "retentionDays": 90
+  },
+  "security": {
+    "allowedDomains": ["nebraska.gov"],
+    "requireAuth": true,
+    "sessionTimeoutMinutes": 30,
+    "logAccess": true
+  },
+  "ui": {
+    "statusValues": ["Pending", "In Progress", "Review", "Done", "Unreachable"],
+    "defaultStatus": "Pending",
+    "theme": "ndoi"
+  }
+}
