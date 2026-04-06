@@ -797,7 +797,7 @@
         <p>Every data cell in the table can be edited directly. Click any cell to start typing. Date and time fields use pickers.</p>
         <table class="help-table">
           <tr><th>Column</th><th>Auto-filled?</th><th>Notes</th></tr>
-          <tr><td>Phone Number</td><td>✓ from transcript</td><td>The callback number the caller mentions. Primary sort key.</td></tr>
+          <tr><td>Phone Number</td><td>✓ from filename / transcript</td><td>Auto-filled from filename if PA-flow format (<code>YYYYMMDD_HHmmss_4024712435.wav</code>), otherwise extracted from transcript. Primary sort key.</td></tr>
           <tr><td>Caller Name</td><td>✓ from transcript</td><td>Name extracted by AI. Works with single names like "Bob".</td></tr>
           <tr><td>Call Date</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with date picker.</td></tr>
           <tr><td>Call Time</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with time picker.</td></tr>
@@ -1184,7 +1184,8 @@ function handleFiles(files) {
   wavFiles.forEach(file => {
     // Deduplicate on size + lastModified — truly identical files only
     if (voicemails.find(v => v.size === file.size && v.lastModified === file.lastModified)) { skipped++; return; }
-    const parsedDate = parseDateFromFilename(file.name);
+    const parsedDate  = parseDateFromFilename(file.name);
+    const parsedPhone = parsePhoneFromFilename(file.name);
     const label = uniqueLabel(file.name);
     voicemails.push({
       id: nextId++,
@@ -1196,7 +1197,7 @@ function handleFiles(files) {
       sizeLabel:    formatBytes(file.size),
       transcript: '',
       caller: '',
-      phone: '',
+      phone: parsedPhone,        // pre-filled from PA-flow filename if present
       calldate: parsedDate,
       calltime: '',
       retdate:  '',
@@ -1249,8 +1250,8 @@ async function transcribeBatch(items) {
       // Auto-extract caller name, phone, datetime via Groq LLM
       if (vm.transcript && !vm.transcript.startsWith('[')) {
         const meta = await extractMetadata(vm.transcript, vm.label || vm.filename);
-        if (meta.caller)   vm.caller   = meta.caller;
-        if (meta.phone)    vm.phone    = meta.phone;
+        if (meta.caller)                 vm.caller   = meta.caller;
+        if (meta.phone    && !vm.phone)  vm.phone    = meta.phone;   // don't overwrite phone parsed from filename
         if (meta.calldate && !vm.calldate) vm.calldate = meta.calldate;
       }
       // Stamp transcription date/time if still blank
@@ -1428,6 +1429,27 @@ function parseDateFromFilename(name) {
     const fullYr = yr.length === 2 ? '20' + yr : yr;
     return `${fullYr}-${mo}-${dy}`;
   }
+  return '';
+}
+
+// Parse phone number from PA-flow-renamed filename: YYYYMMDD_HHmmss_4024712435.wav
+// Also handles: tel_4024712435.wav, phone_4024712435.wav, any trailing 10-digit block
+function parsePhoneFromFilename(name) {
+  const base = name.replace(/\.wav$/i, '');
+  const parts = base.split('_');
+
+  // Primary: PA flow format — 3rd segment is exactly 10 digits
+  if (parts.length >= 3) {
+    const candidate = parts[parts.length - 1].replace(/\D/g, '');
+    if (candidate.length === 10) return candidate;
+  }
+
+  // Fallback: any 10-digit sequence in the filename not part of a date block
+  // Exclude the leading YYYYMMDDHHMMSS digits by stripping first 14 digits
+  const stripped = base.replace(/^\d{8}[_\-]?\d{6}/, '');
+  const m = stripped.match(/\b(\d{10})\b/);
+  if (m) return m[1];
+
   return '';
 }
 
