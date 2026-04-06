@@ -687,6 +687,50 @@
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── NITC 8-609 COMPLIANCE STYLES ── */
+  .compliance-banner {
+    background: rgba(255,170,0,.08);
+    border: 1px solid rgba(255,170,0,.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-top: 14px;
+  }
+  .compliance-banner b { color: var(--warn); }
+  .compliance-banner a { color: var(--accent2); text-decoration: none; }
+
+  .compliance-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(255,68,85,.06);
+    border: 1px solid rgba(255,68,85,.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin: 0 28px 0 28px;
+  }
+  .compliance-notice .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .compliance-notice b { color: var(--danger); }
+  .compliance-notice span { color: var(--text); }
+
+  .ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,153,255,.12);
+    border: 1px solid rgba(0,153,255,.25);
+    color: var(--accent2);
+  }
 </style>
 </head>
 <body>
@@ -722,6 +766,7 @@
           <li><b>Save your work</b> — click <b>💾 Save .db</b> to download a <span class="kbd">voxlog.db</span> file you can reload later.</li>
         </ol>
         <div class="tip-box"><b>Tip:</b> Demo mode (skip API key) lets you explore the full dashboard with sample data — useful for testing before you have a key.</div>
+        <div class="warn-box" style="margin-top:10px;"><b>NITC 8-609 Notice:</b> VoxLog sends voicemail audio to Groq (an external AI service) for transcription. Audio may contain personal data. Use is pending OCIO/RMC approval. Ensure callers are informed via a voicemail greeting disclosure before production use.</div>
       </div>
 
       <!-- DASHBOARD -->
@@ -890,6 +935,11 @@
       <label>Groq API Key</label>
       <input type="password" id="api-key-input"  placeholder="gsk_..." autocomplete="off">
     </div>
+    <div class="compliance-banner">
+      <b>⚠ NITC Policy 8-609 Notice</b><br>
+      Voicemail audio may contain <b>personal data elements</b> (names, phone numbers, account info). Under NITC 8-609 §1(c), LOW IMPACT data containing personal data elements requires <b>OCIO review and approval</b> before use with public AI services.<br><br>
+      This tool is currently <b>pending RMC approval</b>. Use is authorized for internal testing only. Do not process voicemails containing HIGH or MODERATE IMPACT data. Contact your IT Security Officer with questions.
+    </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="skip-api-btn">Skip (demo mode)</button>
       <button class="btn btn-primary" id="save-api-btn">Save & Continue →</button>
@@ -954,12 +1004,23 @@
     </div>
   </div>
 
+  <!-- NITC 8-609 §3 Caller Disclosure Notice -->
+  <div class="compliance-notice" id="disclosure-notice">
+    <div class="notice-icon">⚠️</div>
+    <div>
+      <b>Caller Disclosure Gap — NITC 8-609 §5</b><br>
+      <span>Callers leaving voicemails have not been informed that their messages may be processed by AI transcription software. Per NITC 8-609 §5, agencies must disclose where constituents interact with AI. </span>
+      To address this, update your voicemail greeting to include a disclosure such as: <i>"Your message may be transcribed using AI-assisted software for internal processing purposes."</i>
+    </div>
+  </div>
+
   <!-- Drop Zone -->
   <div id="drop-zone">
     <div class="drop-icon">🎙️</div>
     <div class="drop-title">Drop voicemail .wav files here</div>
     <div class="drop-sub">Or click <b>Load WAV Files</b> above — select multiple files from your folder</div>
     <div class="drop-sub" style="margin-top:4px; font-size:12px;">Supports .wav • Add more files anytime, even after transcribing</div>
+    <div class="drop-sub" style="margin-top:8px; font-size:11px; color:var(--muted);">🤖 Audio is processed by <b>Groq Whisper AI</b> (external service) — see NITC 8-609 compliance notice above</div>
   </div>
 
   <!-- Dashboard -->
@@ -993,8 +1054,10 @@
   <div class="statusbar">
     <span><span class="dot dot-green"></span> VoxLog v1.0</span>
     <span id="sb-files">No files loaded</span>
-    <span id="sb-api">API: <span id="sb-api-status" style="color:var(--muted)">not configured</span></span>
+    <span id="sb-api">AI Engine: <span id="sb-api-status" style="color:var(--muted)">not configured</span></span>
+    <span class="ai-badge">🤖 Groq whisper-large-v3-turbo + llama3-8b-8192</span>
     <span id="sb-sel" style="display:none">Selected: <b id="sb-sel-count">0</b></span>
+    <span style="margin-left:auto; color:var(--muted); font-size:10px;">NITC 8-609 | RMC Review Pending</span>
   </div>
 </div>
 
