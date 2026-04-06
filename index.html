@@ -759,7 +759,7 @@
         <h3>Quick Start</h3>
         <ol class="help-steps">
           <li><b>Get a free Groq API key</b> at <b>console.groq.com</b> → sign up → API Keys. Starts with <span class="kbd">gsk_</span>.</li>
-          <li><b>Enable Zero Data Retention (ZDR)</b> — in the Groq Console go to <b>Settings → Data Controls → Zero Data Retention → Enable</b>. This prevents Groq from retaining any audio or transcript data on their servers, even temporarily. <b>Recommended before any production use.</b></li>
+          <li><b>Verify Zero Data Retention (ZDR)</b> — in the Groq Console go to <b>Settings → Data Controls</b> and confirm <b>Inference APIs ZDR</b> is <b>Enabled</b>. This prevents Groq from retaining any audio or transcript data. <i>Currently enabled on this account as of April 6, 2026.</i></li>
           <li><b>Enter your key</b> in the modal that appears on load, or click <b>🔑 Groq Key</b> in the header anytime.</li>
           <li><b>Load your WAV files</b> — click <b>📁 Load WAV Files</b> or drag-and-drop <span class="kbd">.wav</span> files directly onto the drop zone.</li>
           <li><b>Transcribe</b> — click <b>⚡ Transcribe All</b> to process every file. Or click the individual <b>⚡</b> button on any row. Each file is sent to Groq Whisper and results appear in seconds.</li>
@@ -769,13 +769,8 @@
         <div class="tip-box"><b>Tip:</b> Demo mode (skip API key) lets you explore the full dashboard with sample data — useful for testing before you have a key.</div>
         <div class="warn-box" style="margin-top:10px;">
           <b>NITC 8-609 Notice:</b> VoxLog sends voicemail audio to Groq (an external AI service) for transcription. Audio may contain personal data. Use is pending OCIO/RMC approval. Ensure callers are informed via a voicemail greeting disclosure before production use.<br><br>
-          <b>Data retention — action required:</b> As of October 15, 2025, Groq may store audio inputs and transcript outputs for <b>up to 30 days</b> for system reliability purposes unless you opt out. To prevent this:<br>
-          <ol style="margin:8px 0 8px 16px; line-height:2;">
-            <li>Go to <b>console.groq.com → Settings → Data Controls</b></li>
-            <li>Enable <b>Inference APIs ZDR</b> — this covers all Whisper transcription calls and prevents Groq from logging audio or transcripts</li>
-            <li>Optionally enable <b>Global ZDR</b> to block retention across the entire platform</li>
-          </ol>
-          ZDR is free on all tiers. Usage metadata (request count, duration) is always collected but contains no audio or transcript content. Screenshot your Data Controls settings after enabling ZDR for compliance documentation.
+          <b>Data retention:</b> <b style="color:var(--accent)">Inference APIs ZDR is enabled</b> on this Groq account — audio inputs and transcript outputs are not logged or retained by Groq. Global ZDR is disabled (not required — Inference APIs ZDR covers all Whisper transcription calls). Batch and Fine-tuning are off and unused. Usage metadata (request count, duration) is always collected but contains no audio or transcript content.<br><br>
+          To verify: <b>console.groq.com → Settings → Data Controls</b>. Screenshot this page periodically for compliance documentation.
         </div>
       </div>
 
@@ -949,7 +944,7 @@
       <b>⚠ NITC Policy 8-609 Notice</b><br>
       Voicemail audio may contain <b>personal data elements</b> (names, phone numbers, account info). Under NITC 8-609 §1(c), LOW IMPACT data containing personal data elements requires <b>OCIO review and approval</b> before use with public AI services.<br><br>
       This tool is currently <b>pending RMC approval</b>. Use is authorized for internal testing only. Do not process voicemails containing HIGH or MODERATE IMPACT data. Contact your IT Security Officer with questions.<br><br>
-      <b>Action required:</b> As of October 15, 2025, Groq may retain audio and transcripts for up to 30 days by default. Enable <b>Inference APIs ZDR</b> in your Groq Console under <b>Settings → Data Controls</b> to opt out. Screenshot the settings page for compliance documentation.
+      <b>Data retention:</b> Inference APIs ZDR is <b>enabled</b> on this Groq account — audio and transcripts are not logged or retained by Groq. Verify anytime at <b>console.groq.com → Settings → Data Controls</b>.
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="skip-api-btn">Skip (demo mode)</button>
