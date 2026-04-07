@@ -38,7 +38,7 @@
 | ✏️ **Inline Editing** | Every field editable directly in the table — no forms, no popups |
 | 📅 **Date & Time Pickers** | Call Date, Call Time, Returned Date, Returned Time |
 | 🔄 **Status Tracking** | Pending → In Progress → Review → Done → Unreachable |
-| 💾 **SQLite Backup** | Save and reload full sessions as `.db` files |
+| 💾 **JSON Backup** | Save and reload full sessions as `.json` files |
 | 📊 **CSV Export** | Full export for Excel analysis |
 | 📤 **Push to MS List** | One-click sync to Microsoft List via Power Automate |
 | ✅ **Pushed Flag** | Green ✓ tracks which records have been synced |
@@ -76,10 +76,9 @@
 VoxLog/
 ├── index.html           ← The entire application (open this)
 ├── whisper_server.py    ← Local transcription server (run this first)
-├── sql-wasm.js          ← SQLite library (local, no CDN)
-├── sql-wasm.wasm        ← SQLite WebAssembly binary
 ├── config.json          ← App configuration reference
 ├── README.md            ← You are here
+├── SECURITY.md          ← Security & compliance documentation
 └── files/               ← Your voicemail .wav files go here
 ```
 
@@ -90,7 +89,7 @@ VoxLog/
 ```
 ┌─────────────────────────────────────────────────────┐
 │  🌐 Frontend    │  Vanilla HTML / CSS / JS           │
-│  🗄️ Database    │  sql.js (SQLite via WebAssembly)   │
+│  🗄️ Storage     │  JSON backup (local file)          │
 │  🎙️ Transcribe  │  faster-whisper (local, CPU)       │
 │  🧠 Metadata    │  Ollama qwen2.5 (local)            │
 │  🔄 Sync        │  Power Automate (standard only)    │
@@ -98,33 +97,20 @@ VoxLog/
 └─────────────────────────────────────────────────────┘
 ```
 
+**Zero external dependencies.** Everything runs in the browser or on localhost.
+
 ---
 
 ## 🔐 Security Scan Notes — False Positive Documentation
 
-> **Tool:** ClawSecure Proprietary Engine
-> **Findings:** Potentially dangerous code patterns detected in `index.html`
-> **Verdict: FALSE POSITIVES — No remediation required**
+> See **SECURITY.md** for the full compliance and RMC documentation.
 
-### Finding: `db.exec` in index.html
+ClawSecure previously flagged dangerous code patterns in the codebase. Both sources have been eliminated:
 
-The scanner flagged a call to `Database.exec` from the **sql.js** library — SQLite compiled to WebAssembly. This method executes a SQL SELECT statement against an **in-memory browser database** only. It has no access to the network, file system, or operating system.
+- The WebAssembly database library has been removed entirely. VoxLog no longer uses it.
+- The associated query call has been removed. Session save/restore now uses plain JSON.
 
-This is not shell execution, dynamic code evaluation, or any form of command injection. It is a standard SQLite query API call — equivalent to running a SELECT statement against a local spreadsheet. The WebAssembly sandbox prevents any interaction with the host system.
-
-### What Was Scanned vs. What Is Actually Present
-
-The scanner is performing regex pattern matching on string literals. The only occurrence of the flagged pattern in `index.html` is:
-
-```
-db query → SELECT id, filename, ... FROM voicemails ORDER BY id
-```
-
-There is no shell invocation, no dynamic code execution, and no operating system calls anywhere in `index.html` or `whisper_server.py`. The Python server uses only `tempfile`, `os.unlink`, and standard Flask request handling — all well within normal web server patterns.
-
-### Recommended Disposition
-
-Document all three findings as false positives resulting from broad regex pattern matching. No code changes are required. This documentation serves as the remediation record for RMC/security review purposes.
+No flagged patterns remain in any VoxLog file. See SECURITY.md for the full finding disposition.
 
 ---
 
@@ -165,20 +151,6 @@ Download Ollama from [ollama.com](https://ollama.com), install it, then run:
 
 ```powershell
 ollama pull qwen2.5
-```
-
-### 3. Verify sql.js files are present
-
-The following two files must be in the VoxLog folder alongside `index.html`:
-- `sql-wasm.js`
-- `sql-wasm.wasm`
-
-If missing, download them with Python:
-
-```powershell
-cd "C:\path\to\VoxLog"
-python -c "import urllib.request; urllib.request.urlretrieve('https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js', 'sql-wasm.js'); print('js done')"
-python -c "import urllib.request; urllib.request.urlretrieve('https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.wasm', 'sql-wasm.wasm'); print('wasm done')"
 ```
 
 ---
@@ -248,8 +220,7 @@ The Push to List feature exports a JSON file and opens an Outlook email. The rec
 | Browser shows old version | Hard refresh with `Ctrl+Shift+R` |
 | `localhost:8080` not loading | Use `http://127.0.0.1:8080` instead |
 | Transcription is slow | Switch `MODEL_SIZE` to `tiny` in `whisper_server.py` |
-| sql.js error on load | Verify `sql-wasm.js` and `sql-wasm.wasm` are in the VoxLog folder |
-| ClawSecure scan findings | All documented as false positives — see Security Scan Notes above |
+| ClawSecure scan findings | All resolved — see SECURITY.md |
 
 ---
 
@@ -257,9 +228,9 @@ The Push to List feature exports a JSON file and opens an Outlook email. The rec
 
 - 🔒 All audio processed **locally** — no data sent to external APIs
 - 🏛️ No OCIO/RMC approval required for external AI — fully on-premise
-- 📋 Transcription data stays in your browser and local `.db` file only
-- 🗑️ `.db` files should be treated as records per your agency retention schedule
-- ⚠️ ClawSecure scan findings are documented false positives — see Security Scan Notes above
+- 📋 Transcription data stays in your browser and local `.json` backup file only
+- 🗑️ Backup files should be treated as records per your agency retention schedule
+- 📄 See **SECURITY.md** for full NITC 8-609 assessment and scan documentation
 
 ---
 
@@ -345,7 +316,7 @@ Every column in the table is editable — just click on any cell:
 
 ## Saving Your Work
 
-Click **💾 Backup** to save everything to a `voxlog.db` file. Reload it next session with **📂 Load Backup**.
+Click **💾 Backup** to save everything to a `voxlog-backup.json` file. Reload it next session with **📂 Load Backup**.
 
 > 💡 Save regularly — your session is lost if you close the browser without saving.
 
