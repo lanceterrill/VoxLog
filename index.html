@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoxLog — Voicemail Transcription Dashboard</title>
+
+<style>
+  :root {
+    --bg:       #0e0f11;
+    --surface:  #161719;
+    --panel:    #1c1e21;
+    --border:   #2a2d32;
+    --border2:  #353840;
+    --accent:   #00c896;
+    --accent2:  #0099ff;
+    --warn:     #ffaa00;
+    --danger:   #ff4455;
+    --text:     #e2e4e8;
+    --muted:    #7a8090;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  /* ── LIGHT THEME ── */
+  [data-theme="light"] {
+    --bg:       #f0f2f5;
+    --surface:  #ffffff;
+    --panel:    #e8eaed;
+    --border:   #d0d4db;
+    --border2:  #bcc1ca;
+    --accent:   #00a878;
+    --accent2:  #0077dd;
+    --warn:     #cc8800;
+    --danger:   #dd2233;
+    --text:     #1a1d23;
+    --muted:    #5a6070;
+  }
+
+  /* ── THEME TOGGLE BUTTON ── */
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 5px 8px;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--accent); background: var(--panel); }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #000;
+    font-size: 16px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .stat-pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--muted);
+  }
+  .stat-pill b { color: var(--accent); }
+
+  /* ── MAIN LAYOUT ── */
+  .app-body { display: flex; flex-direction: column; height: calc(100vh - 56px); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { background: #00e0a8; }
+  .btn-secondary { background: transparent; color: var(--text); border-color: var(--border2); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-warning { background: var(--warn); color: #000; border-color: var(--warn); font-weight: 600; }
+  .btn-warning:hover { background: #ffc107; border-color: #ffc107; }
+  .btn-warning:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .toolbar-sep { width: 1px; height: 28px; background: var(--border); }
+
+  .search-wrap {
+    position: relative;
+    flex: 1; min-width: 180px; max-width: 320px;
+  }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .search-input {
+    width: 100%;
+    padding: 7px 12px 7px 34px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--accent2); }
+  .search-input::placeholder { color: var(--muted); }
+
+  select.sort-select {
+    padding: 7px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  select.sort-select:focus { border-color: var(--accent2); }
+
+  .progress-bar-wrap {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .progress-bar-wrap.visible { display: flex; }
+  .progress-bar-outer {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width .3s;
+    width: 0%;
+  }
+  .progress-label { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  /* ── DROP ZONE ── */
+  #drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex: 1;
+    margin: 32px 28px;
+    border: 2px dashed var(--border2);
+    border-radius: 12px;
+    background: var(--surface);
+    transition: all .2s;
+    cursor: pointer;
+    text-align: center;
+    padding: 48px;
+  }
+  #drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,168,120,.07);
+  }
+  .drop-icon { font-size: 48px; opacity: .5; }
+  .drop-title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .drop-sub { color: var(--muted); font-size: 14px; }
+  .drop-sub b { color: var(--accent); }
+  #file-input { display: none; }
+
+  /* ── TABLE ── */
+  #dashboard { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  #dashboard.visible { display: flex; }
+
+  .table-wrap { flex: 1; overflow: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead {
+    position: sticky; top: 0;
+    background: var(--panel);
+    z-index: 10;
+  }
+
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+  }
+  th:hover { color: var(--accent); }
+  th.sorted-asc::after  { content: ' ↑'; color: var(--accent); }
+  th.sorted-desc::after { content: ' ↓'; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr:hover { background: var(--panel); }
+  tbody tr.selected { background: rgba(0,168,120,.07); }
+
+  td {
+    padding: 10px 14px;
+    vertical-align: top;
+  }
+
+  .td-check { width: 36px; }
+  input[type=checkbox] { accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px; }
+
+  .td-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    width: 42px;
+    text-align: right;
+  }
+
+  .td-phone    { font-family: var(--mono); font-size: 12px; white-space: nowrap; min-width: 130px; }
+  .td-calldate { font-family: var(--mono); font-size: 12px; white-space: nowrap; min-width: 130px; color: var(--muted); }
+
+  input.date-input {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 2px 4px;
+    cursor: pointer;
+    outline: none;
+    width: 130px;
+    transition: border-color .15s, background .15s;
+    color-scheme: dark;
+  }
+  [data-theme="light"] input.date-input { color-scheme: light; }
+  input.date-input:hover { border-color: var(--border2); background: var(--surface); }
+  input.date-input:focus { border-color: var(--accent2); background: var(--surface); }
+
+  .td-filename {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    min-width: 160px;
+    max-width: 260px;
+  }
+
+  .td-size { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .td-dur  { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .td-transcript {
+    min-width: 260px;
+    max-width: 480px;
+    line-height: 1.55;
+  }
+
+  .td-caller { min-width: 120px; }
+  .td-notes  { min-width: 160px; }
+  .td-status { min-width: 100px; }
+  .td-actions { white-space: nowrap; }
+
+  /* Inline editing */
+  .editable {
+    cursor: text;
+    border-radius: 3px;
+    padding: 2px 4px;
+    min-height: 20px;
+    display: block;
+    word-break: break-word;
+    outline: none;
+    border: 1px solid transparent;
+    transition: border-color .15s, background .15s;
+  }
+  .editable:hover { border-color: var(--border2); background: var(--surface); }
+  .editable:focus { border-color: var(--accent2); background: var(--surface); }
+  .editable[placeholder]:empty::before {
+    content: attr(placeholder);
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .status-pending     { background: rgba(0,153,255,.15);  color: var(--accent2); border-color: rgba(0,153,255,.3); }
+  .status-in-progress { background: rgba(255,170,0,.15);  color: var(--warn);    border-color: rgba(255,170,0,.3); }
+  .status-done        { background: rgba(0,200,150,.15);  color: var(--accent);  border-color: rgba(0,200,150,.3); }
+  .status-review      { background: rgba(255,105,180,.15); color: #ff69b4;        border-color: rgba(255,105,180,.3); }
+  .status-unreachable { background: rgba(255,68,85,.15);   color: var(--danger);  border-color: rgba(255,68,85,.3); }
+
+  .status-select {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 4px;
+    outline: none;
+    color: inherit;
+    width: auto;
+    min-width: 90px;
+  }
+
+  /* Action icons */
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: color .15s, background .15s;
+  }
+  .icon-btn:hover { color: var(--text); background: var(--border); }
+  .icon-btn.del:hover { color: var(--danger); background: rgba(255,68,85,.1); }
+
+  /* Transcribing spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .transcribing-cell { color: var(--muted); font-style: italic; }
+
+
+  /* ── HELP MODAL ── */
+  .help-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1001;
+    backdrop-filter: blur(4px);
+  }
+  .help-overlay.hidden { display: none; }
+
+  .help-modal {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    width: 720px;
+    max-width: 96vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,.3);
+  }
+
+  .help-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px 0;
+    flex-shrink: 0;
+  }
+  .help-header h2 { font-size: 18px; font-weight: 600; }
+  .help-close {
+    background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; line-height: 1;
+    padding: 4px 8px; border-radius: 4px;
+    transition: color .15s, background .15s;
+  }
+  .help-close:hover { color: var(--text); background: var(--border); }
+
+  .help-tabs {
+    display: flex; gap: 4px;
+    padding: 16px 28px 0;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .help-tab {
+    padding: 7px 14px;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: var(--muted);
+    background: none;
+    margin-bottom: -1px;
+    transition: color .15s;
+  }
+  .help-tab:hover { color: var(--text); }
+  .help-tab.active {
+    color: var(--text);
+    background: var(--panel);
+    border-color: var(--border);
+    border-bottom-color: var(--panel);
+  }
+
+  .help-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px 28px;
+  }
+
+  .help-section { display: none; }
+  .help-section.active { display: block; }
+
+  .help-section h3 {
+    font-size: 13px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--accent);
+    margin: 20px 0 10px;
+  }
+  .help-section h3:first-child { margin-top: 0; }
+
+  .help-section p {
+    color: var(--muted);
+    line-height: 1.65;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .help-section p b { color: var(--text); }
+
+  .help-steps {
+    list-style: none;
+    counter-reset: steps;
+    margin-bottom: 14px;
+  }
+  .help-steps li {
+    counter-increment: steps;
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .help-steps li:last-child { border-bottom: none; }
+  .help-steps li::before {
+    content: counter(steps);
+    min-width: 22px; height: 22px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .help-steps li b { color: var(--text); }
+
+  .help-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .help-table th {
+    text-align: left;
+    padding: 7px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+  .help-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .help-table td:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    white-space: nowrap;
+  }
+  .help-table td b { color: var(--text); }
+
+  .kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .tip-box {
+    background: rgba(0,200,150,.07);
+    border: 1px solid rgba(0,200,150,.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .tip-box b { color: var(--accent); }
+
+  .warn-box {
+    background: rgba(255,170,0,.07);
+    border: 1px solid rgba(255,170,0,.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .warn-box b { color: var(--warn); }
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 28px 32px;
+    width: 460px;
+    max-width: 95vw;
+  }
+  .modal h2 { font-size: 17px; margin-bottom: 6px; }
+  .modal p  { color: var(--muted); font-size: 13px; line-height: 1.55; margin-bottom: 20px; }
+
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+  .modal-field input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+  }
+  .modal-field input:focus { border-color: var(--accent2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+  /* ── FOOTER STATUS BAR ── */
+  .statusbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 6px 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .statusbar .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-green  { background: var(--accent); }
+  .dot-yellow { background: var(--warn); }
+  .dot-red    { background: var(--danger); }
+
+  /* ── TOAST ── */
+  #toast-container {
+    position: fixed; bottom: 48px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 9999;
+  }
+  .toast {
+    padding: 10px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 13px;
+    animation: toastIn .2s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2);
+    max-width: 340px;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.warn  { border-left-color: var(--warn); }
+  @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+  /* ── EMPTY STATE ── */
+  .empty-row td {
+    text-align: center;
+    padding: 48px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── NITC 8-609 COMPLIANCE STYLES ── */
+  .compliance-banner {
+    background: rgba(255,170,0,.08);
+    border: 1px solid rgba(255,170,0,.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-top: 14px;
+  }
+  .compliance-banner b { color: var(--warn); }
+  .compliance-banner a { color: var(--accent2); text-decoration: none; }
+
+  .compliance-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(255,68,85,.06);
+    border: 1px solid rgba(255,68,85,.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin: 0 28px 0 28px;
+  }
+  .compliance-notice .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .compliance-notice b { color: var(--danger); }
+  .compliance-notice span { color: var(--text); }
+
+  .ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,153,255,.12);
+    border: 1px solid rgba(0,153,255,.25);
+    color: var(--accent2);
+  }
+</style>
+</head>
+<body>
+
+<!-- Help Modal -->
+<div class="help-overlay hidden" id="help-overlay">
+  <div class="help-modal">
+    <div class="help-header">
+      <h2>📞 VoxLog Help</h2>
+      <button class="help-close" id="help-close">✕</button>
+    </div>
+
+    <div class="help-tabs">
+      <button class="help-tab active" data-tab="getting-started">Getting Started</button>
+      <button class="help-tab" data-tab="dashboard">Dashboard</button>
+      <button class="help-tab" data-tab="editing">Editing</button>
+      <button class="help-tab" data-tab="save-load">Save &amp; Load</button>
+      <button class="help-tab" data-tab="export">Export</button>
+      <button class="help-tab" data-tab="push">Push to List</button>
+    </div>
+
+    <div class="help-body">
+
+      <!-- GETTING STARTED -->
+      <div class="help-section active" id="tab-getting-started">
+        <h3>Quick Start</h3>
+        <ol class="help-steps">
+          <li><b>Get a free Groq API key</b> at <b>console.groq.com</b> → sign up → API Keys. Starts with <span class="kbd">gsk_</span>.</li>
+          <li><b>Verify Zero Data Retention (ZDR)</b> — in the Groq Console go to <b>Settings → Data Controls</b> and confirm <b>Inference APIs ZDR</b> is <b>Enabled</b>. This prevents Groq from retaining any audio or transcript data. <i>Currently enabled on this account as of April 6, 2026.</i></li>
+          <li><b>Enter your key</b> in the modal that appears on load, or click <b>🔑 Groq Key</b> in the header anytime.</li>
+          <li><b>Load your WAV files</b> — click <b>📁 Load WAV Files</b> or drag-and-drop <span class="kbd">.wav</span> files directly onto the drop zone.</li>
+          <li><b>Transcribe</b> — click <b>⚡ Transcribe All</b> to process every file. Or click the individual <b>⚡</b> button on any row. Each file is sent to Groq Whisper and results appear in seconds.</li>
+          <li><b>Review &amp; edit</b> — caller name, phone number, call date, and notes are all auto-filled and editable.</li>
+          <li><b>Save your work</b> — click <b>💾 Save .db</b> to download a <span class="kbd">voxlog.db</span> file you can reload later.</li>
+        </ol>
+        <div class="tip-box"><b>Tip:</b> Demo mode (skip API key) lets you explore the full dashboard with sample data — useful for testing before you have a key.</div>
+        <div class="warn-box" style="margin-top:10px;">
+          <b>NITC 8-609 Notice:</b> VoxLog sends voicemail audio to Groq (an external AI service) for transcription. Audio may contain personal data. Use is pending OCIO/RMC approval. Ensure callers are informed via a voicemail greeting disclosure before production use.<br><br>
+          <b>Data retention:</b> <b style="color:var(--accent)">Inference APIs ZDR is enabled</b> on this Groq account — audio inputs and transcript outputs are not logged or retained by Groq. Global ZDR is disabled (not required — Inference APIs ZDR covers all Whisper transcription calls). Batch and Fine-tuning are off and unused. Usage metadata (request count, duration) is always collected but contains no audio or transcript content.<br><br>
+          To verify: <b>console.groq.com → Settings → Data Controls</b>. Screenshot this page periodically for compliance documentation.
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="help-section" id="tab-dashboard">
+        <h3>Toolbar Buttons</h3>
+        <table class="help-table">
+          <tr><th>Button</th><th>What it does</th></tr>
+          <tr><td>📁 Load WAV Files</td><td>Opens file picker — select one or many <b>.wav</b> files. You can also drag-and-drop files onto the main drop zone.</td></tr>
+          <tr><td>⚡ Transcribe All</td><td>Sends all un-transcribed files to Groq Whisper, then extracts caller name, phone, and date automatically via AI.</td></tr>
+          <tr><td>⬇ Export CSV</td><td>Downloads all rows as a <b>.csv</b> spreadsheet with every column. Opens in Excel, Google Sheets, etc.</td></tr>
+          <tr><td>💾 Backup</td><td>Saves everything to a real SQLite <b>.db</b> file you can reload next session.</td></tr>
+          <tr><td>📂 Load Backup</td><td>Restores a previously saved <b>voxlog.db</b> — brings back all records, edits, and statuses.</td></tr>
+          <tr><td>✕ Clear All</td><td>Wipes the dashboard. Prompts for confirmation first.</td></tr>
+          <tr><td>📤 Push to List</td><td>Exports unpushed records as JSON and opens Outlook to send to the VoxLog Microsoft List via Power Automate.</td></tr>
+        </table>
+
+        <h3>Sorting &amp; Search</h3>
+        <p>Use the <b>search bar</b> to filter rows across all columns — phone, caller name, transcript text, notes, date, or filename.</p>
+        <p>Use the <b>sort dropdown</b> to order by phone number (default), date, caller name, filename, or status.</p>
+
+        <h3>Status Counts (Header)</h3>
+        <p><b>Total</b> — all loaded voicemails. <b>Done</b> — rows marked Done. <b>Pending</b> — rows still Pending or In Progress.</p>
+      </div>
+
+      <!-- EDITING -->
+      <div class="help-section" id="tab-editing">
+        <h3>Editable Columns</h3>
+        <p>Every data cell in the table can be edited directly. Click any cell to start typing. Date and time fields use pickers.</p>
+        <table class="help-table">
+          <tr><th>Column</th><th>Auto-filled?</th><th>Notes</th></tr>
+          <tr><td>Phone Number</td><td>✓ from filename / transcript</td><td>Auto-filled from filename if PA-flow format (<code>YYYYMMDD_HHmmss_4024712435.wav</code>), otherwise extracted from transcript. Primary sort key.</td></tr>
+          <tr><td>Caller Name</td><td>✓ from transcript</td><td>Name extracted by AI. Works with single names like "Bob".</td></tr>
+          <tr><td>Call Date</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with date picker.</td></tr>
+          <tr><td>Call Time</td><td>✓ at transcription</td><td>Stamped automatically when transcribed. Override with time picker.</td></tr>
+          <tr><td>Filename</td><td>—</td><td>Original .wav filename. Editable label for display purposes.</td></tr>
+          <tr><td>Transcription</td><td>✓ via Whisper</td><td>Full verbatim transcript. Editable — fix errors or add context.</td></tr>
+          <tr><td>Staff Name</td><td>—</td><td>Staff member handling the callback. Free text.</td></tr>
+          <tr><td>Returned Date</td><td>—</td><td>Date the call was returned. Set with date picker.</td></tr>
+          <tr><td>Returned Time</td><td>—</td><td>Time the call was returned. Set with time picker.</td></tr>
+          <tr><td>Notes</td><td>—</td><td>Free-form notes — follow-up actions, priority flags, etc.</td></tr>
+        </table>
+
+        <h3>Status Dropdown</h3>
+        <p>Each row has a status badge you can change via dropdown:</p>
+        <table class="help-table">
+          <tr><td style="color:var(--accent2)">Pending</td><td>Default for all new voicemails. Not yet reviewed.</td></tr>
+          <tr><td style="color:var(--warn)">In Progress</td><td>Being worked on — follow-up in progress.</td></tr>
+          <tr><td style="color:#ff69b4">Review</td><td>Needs supervisor review before closing.</td></tr>
+          <tr><td style="color:var(--accent)">Done</td><td>Resolved / no further action needed.</td></tr>
+          <tr><td style="color:var(--danger)">Unreachable</td><td>Unable to reach caller after attempts.</td></tr>
+        </table>
+
+        <div class="tip-box"><b>Tip:</b> A green <b>✓</b> in the Actions column means that record has already been pushed to the Microsoft List.</div>
+      </div>
+
+      <!-- SAVE & LOAD -->
+      <div class="help-section" id="tab-save-load">
+        <h3>Saving Your Session</h3>
+        <ol class="help-steps">
+          <li>After transcribing and editing, click <b>💾 Save .db</b> in the toolbar.</li>
+          <li>A file called <b>voxlog.db</b> will download to your computer.</li>
+          <li>Keep this file somewhere safe — it contains all your voicemail records, transcriptions, caller info, notes, and statuses.</li>
+        </ol>
+
+        <h3>Loading a Saved Session</h3>
+        <ol class="help-steps">
+          <li>Open VoxLog (this HTML file) in your browser.</li>
+          <li>Click <b>📂 Load .db</b> in the toolbar.</li>
+          <li>Select your <span class="kbd">voxlog.db</span> file — all your records restore instantly.</li>
+          <li>You can then load additional WAV files on top and transcribe new ones without losing existing records.</li>
+        </ol>
+
+        <h3>What's Stored in the .db</h3>
+        <table class="help-table">
+          <tr><th>Field</th><th>Stored?</th></tr>
+          <tr><td>Phone, Caller, Date, Status</td><td>✓ Yes</td></tr>
+          <tr><td>Full transcription text</td><td>✓ Yes</td></tr>
+          <tr><td>Notes</td><td>✓ Yes</td></tr>
+          <tr><td>Original .wav audio file</td><td>✗ No — only metadata &amp; text</td></tr>
+        </table>
+
+        <div class="warn-box"><b>Note:</b> The original .wav audio files are <b>not</b> stored in the .db — only the transcription text and metadata. If you need to re-transcribe a file, you'll need the original .wav again.</div>
+        <div class="tip-box"><b>Power tip:</b> The .db file is a standard SQLite database. You can open it in <b>DB Browser for SQLite</b> or query it with any SQLite tool for custom reporting.</div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="help-section" id="tab-export">
+        <h3>Export to CSV</h3>
+        <ol class="help-steps">
+          <li>Click <b>⬇ Export CSV</b> in the toolbar.</li>
+          <li>A file called <b>voxlog_export.csv</b> downloads immediately.</li>
+          <li>Open it in <b>Excel</b>, <b>Google Sheets</b>, or any spreadsheet app.</li>
+        </ol>
+
+        <h3>CSV Columns</h3>
+        <table class="help-table">
+          <tr><th>Column</th><th>Contents</th></tr>
+          <tr><td>#</td><td>Row number</td></tr>
+          <tr><td>Phone Number</td><td>Caller's callback number</td></tr>
+          <tr><td>Caller Name</td><td>Name extracted from transcript</td></tr>
+          <tr><td>Call Date/Time</td><td>Date parsed from filename or transcript</td></tr>
+          <tr><td>Filename</td><td>Original .wav filename</td></tr>
+          <tr><td>Transcription</td><td>Full transcript text</td></tr>
+          <tr><td>Notes</td><td>Your notes</td></tr>
+          <tr><td>Status</td><td>Pending / In Progress / Done</td></tr>
+        </table>
+
+        <div class="tip-box"><b>Tip:</b> Use <b>Search</b> to filter rows before exporting — the CSV exports whatever is currently visible in the table after filtering.</div>
+
+        <h3>Difference: .db vs .csv</h3>
+        <table class="help-table">
+          <tr><th></th><th>.db (SQLite)</th><th>.csv</th></tr>
+          <tr><td>Purpose</td><td><b>Save &amp; reload</b> your session</td><td><b>Share / analyze</b> in spreadsheet</td></tr>
+          <tr><td>Reloadable in VoxLog</td><td>✓ Yes</td><td>✗ No</td></tr>
+          <tr><td>Opens in Excel</td><td>✗ Not directly</td><td>✓ Yes</td></tr>
+          <tr><td>Opens in SQLite tools</td><td>✓ Yes</td><td>✗ No</td></tr>
+        </table>
+      </div>
+
+      <!-- PUSH TO LIST -->
+      <div class="help-section" id="tab-push">
+        <h3>Overview</h3>
+        <p>Push to List syncs transcribed voicemail records directly into the <b>VoxLog Microsoft List</b> in Teams via a Power Automate flow. Only records that haven't been pushed yet are included each time.</p>
+
+        <h3>How to Push</h3>
+        <ol class="help-steps">
+          <li>Click <b>📤 Push to List</b> in the toolbar. A JSON file downloads automatically — find it in your Downloads folder.</li>
+          <li>Click <b>✉️ Open Outlook Email</b> in the modal that appears. Outlook opens with <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6c282325423f24253c2c02090e1e0d1f070d420b031a">[email&#160;protected]</a></b> pre-filled and subject set to <b>VoxLog List Sync</b>.</li>
+          <li>Make sure the <b>From</b> field shows your personal account (<b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="85c9e4ebe6e0abd1e0f7f7ece9e9c5ebe0e7f7e4f6eee4abe2eaf3">[email&#160;protected]</a></b>), not the shared mailbox. Switch it if needed.</li>
+          <li>Attach the downloaded JSON file to the email and click <b>Send</b>.</li>
+          <li>Power Automate picks it up within a minute and creates items in the VoxLog List.</li>
+        </ol>
+
+        <h3>Pushed Status</h3>
+        <p>Records that have been pushed show a green <b>✓</b> in the Actions column. They won't be included in future Push exports unless you reload from a .db that predates the push.</p>
+
+        <h3>Field Mapping</h3>
+        <table class="help-table">
+          <tr><th>VoxLog Column</th><th>List Column</th></tr>
+          <tr><td>Caller Name</td><td>CallerName</td></tr>
+          <tr><td>Phone Number</td><td>PhoneNumber</td></tr>
+          <tr><td>Call Date</td><td>CallDate</td></tr>
+          <tr><td>Call Time</td><td>CallTime</td></tr>
+          <tr><td>Transcription</td><td>Transcription</td></tr>
+          <tr><td>Staff Name</td><td>StaffName</td></tr>
+          <tr><td>Returned Date</td><td>ReturnedCallDate</td></tr>
+          <tr><td>Returned Time</td><td>ReturnedCallTime</td></tr>
+          <tr><td>Notes</td><td>Notes</td></tr>
+          <tr><td>Status</td><td>Status</td></tr>
+          <tr><td>Filename</td><td>OriginalFilename</td></tr>
+        </table>
+
+        <div class="warn-box"><b>Important:</b> Do not change the email subject line — Power Automate filters on <b>VoxLog List Sync</b> exactly. Changing it will cause the flow to ignore the email.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="api-modal">
+  <div class="modal">
+    <h2>🤖 Local AI Setup</h2>
+    <p>VoxLog is running in <b>fully offline mode</b>.<br><br>
+    Make sure both services are running before connecting:<br><br>
+    <span style="font-family:var(--mono); font-size:12px; color:var(--accent);">① whisper_server.py</span> — runs at <code style="color:var(--accent2)">localhost:5001</code> (speech-to-text)<br>
+    <span style="font-family:var(--mono); font-size:12px; color:var(--accent);">② ollama serve</span> — runs at <code style="color:var(--accent2)">localhost:11434</code> (caller extraction)</p>
+    <div class="compliance-banner">
+      <b>✅ Local Mode — No Data Leaves Your Machine</b><br>
+      Audio is transcribed by <b>faster-whisper</b> running locally. Metadata extraction uses <b>Ollama qwen2.5</b> locally. No external API calls are made. NITC 8-609 external data transfer requirements do not apply.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="skip-api-btn">Skip (demo mode)</button>
+      <button class="btn btn-primary" id="save-api-btn">Connect & Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📞</div>
+    Vox<span>Log</span>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">Total: <b id="stat-total">0</b></div>
+    <div class="stat-pill">Done: <b id="stat-reviewed">0</b></div>
+    <div class="stat-pill">Pending: <b id="stat-pending">0</b></div>
+    <button class="btn btn-secondary" id="change-key-btn" style="font-size:12px; padding:5px 10px;">🤖 AI Status</button>
+    <button class="btn btn-secondary" id="help-btn" style="font-size:12px; padding:5px 10px;">❓ Help</button>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode">🌙</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" id="load-folder-btn">📁 Load WAV Files</button>
+    <button class="btn btn-secondary" id="add-files-btn" style="display:none">➕ Add More Files</button>
+    <input type="file" id="file-input" accept=".wav,audio/*" multiple>
+
+    <div class="toolbar-sep"></div>
+
+    <button class="btn btn-secondary" id="transcribe-all-btn" disabled>⚡ Transcribe All</button>
+    <button class="btn btn-secondary" id="export-csv-btn" disabled>⬇ Export CSV</button>
+    <button class="btn btn-warning"   id="save-db-btn"     disabled>💾 Backup</button>
+    <button class="btn btn-secondary" id="load-db-btn">📂 Load Backup</button>
+    <input type="file" id="db-file-input" accept=".json" style="display:none">
+    <button class="btn btn-danger"    id="clear-btn"       disabled>✕ Clear All</button>
+    <button class="btn btn-secondary" id="push-list-btn"   disabled style="border-color:var(--accent2); color:var(--accent2);">📤 Push to List</button>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-input" type="text" id="search-input" placeholder="Search transcriptions…">
+    </div>
+
+    <select class="sort-select" id="sort-select">
+      <option value="idx">Sort: Phone # (default)</option>
+      <option value="calldate">Sort: Date ↑ (oldest)</option>
+      <option value="calldate-desc">Sort: Date ↓ (newest)</option>
+      <option value="caller">Sort: Caller A→Z</option>
+      <option value="filename">Sort: Filename A→Z</option>
+      <option value="status">Sort: Status</option>
+    </select>
+
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+      <div class="progress-label" id="progress-label">0 / 0</div>
+    </div>
+  </div>
+
+  <!-- NITC 8-609 §3 Caller Disclosure Notice -->
+  <div class="compliance-notice" id="disclosure-notice">
+    <div class="notice-icon">⚠️</div>
+    <div>
+      <b>Caller Disclosure Gap — NITC 8-609 §5</b><br>
+      <span>Callers leaving voicemails have not been informed that their messages may be processed by AI transcription software. Per NITC 8-609 §5, agencies must disclose where constituents interact with AI. </span>
+      To address this, update your voicemail greeting to include a disclosure such as: <i>"Your message may be transcribed using AI-assisted software for internal processing purposes."</i>
+    </div>
+  </div>
+
+  <!-- Drop Zone -->
+  <div id="drop-zone">
+    <div class="drop-icon">🎙️</div>
+    <div class="drop-title">Drop voicemail .wav files here</div>
+    <div class="drop-sub">Or click <b>Load WAV Files</b> above — select multiple files from your folder</div>
+    <div class="drop-sub" style="margin-top:4px; font-size:12px;">Supports .wav • Add more files anytime, even after transcribing</div>
+    <div class="drop-sub" style="margin-top:8px; font-size:11px; color:var(--muted);">🤖 Audio is processed by <b>local Whisper + Ollama</b> — fully offline, no data leaves your machine</div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="table-wrap">
+      <table id="voicemail-table">
+        <thead>
+          <tr>
+            <th class="td-check"><input type="checkbox" id="check-all"></th>
+            <th class="td-num">#</th>
+            <th data-col="phone">Phone Number</th>
+            <th data-col="caller">Caller Name</th>
+            <th data-col="calldate">Call Date</th>
+            <th data-col="calltime">Call Time</th>
+            <th data-col="filename">Filename</th>
+            <th data-col="transcript">Transcription</th>
+            <th data-col="staffname">Staff Name</th>
+            <th data-col="retdate">Returned Date</th>
+            <th data-col="rettime">Returned Time</th>
+            <th data-col="notes">Notes</th>
+            <th data-col="status">Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <span><span class="dot dot-green"></span> VoxLog v1.0</span>
+    <span id="sb-files">No files loaded</span>
+    <span id="sb-api">AI Engine: <span id="sb-api-status" style="color:var(--muted)">not configured</span></span>
+    <span class="ai-badge">🤖 Local: faster-whisper + qwen2.5</span>
+    <span id="sb-sel" style="display:none">Selected: <b id="sb-sel-count">0</b></span>
+    <span style="margin-left:auto; color:var(--muted); font-size:10px;">NITC 8-609 | RMC Review Pending</span>
+  </div>
+</div>
+
+<!-- Push to List Modal -->
+<div class="modal-overlay hidden" id="push-modal">
+  <div class="modal" style="max-width:480px;">
+    <h2>📤 Push to List</h2>
+    <p style="margin:14px 0 6px; color:var(--muted); font-size:13px; line-height:1.6;">
+      <b style="color:var(--text)" id="push-count-label">0 records</b> exported as <code style="color:var(--accent2)" id="push-filename-label">voxlog_listsync.json</code>.<br><br>
+      To sync to the VoxLog Microsoft List:<br>
+    </p>
+    <ol style="margin:10px 0 16px 18px; color:var(--muted); font-size:13px; line-height:1.9;">
+      <li>The JSON file was just downloaded — find it in your Downloads folder</li>
+      <li>Click <b style="color:var(--text)">Open Outlook Email</b> below</li>
+      <li>Attach the downloaded JSON file to the email</li>
+      <li>Send — Power Automate will handle the rest</li>
+    </ol>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="push-close-btn">Close</button>
+      <button class="btn btn-primary" id="push-outlook-btn">✉️ Open Outlook Email</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-container"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── THEME TOGGLE ───────────────────────────────────────────────────────────
+(function() {
+  const root = document.documentElement;
+  const btn  = document.getElementById('theme-toggle');
+  const saved = localStorage.getItem('voxlog-theme') || 'dark';
+  const apply = theme => {
+    root.setAttribute('data-theme', theme);
+    btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    btn.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    localStorage.setItem('voxlog-theme', theme);
+  };
+  apply(saved);
+  btn.addEventListener('click', () => apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+})();
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let demoMode = false;
+let voicemails = []; // { id, file, filename, size, sizeLabel, transcript, caller, notes, status, transcribing }
+let nextId = 1;
+let sortKey = 'idx';
+let searchQuery = '';
+let sortAsc = true;
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById('save-api-btn').addEventListener('click', async () => {
+  // Check Ollama is running
+  try {
+    const r = await fetch('http://127.0.0.1:11434/api/tags');
+    if (!r.ok) throw new Error();
+  } catch {
+    toast('Cannot reach Ollama at 127.0.0.1:11434 — is it running?', 'error');
+    return;
+  }
+  // Check whisper server is running
+  try {
+    const r = await fetch('http://127.0.0.1:5001/health');
+    if (!r.ok) throw new Error();
+  } catch {
+    toast('Cannot reach Whisper server at 127.0.0.1:5001 — run whisper_server.py first', 'error');
+    return;
+  }
+  demoMode = false;
+  document.getElementById('api-modal').classList.add('hidden');
+  document.getElementById('sb-api-status').textContent = 'Local AI ✓';
+  document.getElementById('sb-api-status').style.color = 'var(--accent)';
+  toast('Connected to Ollama + Whisper server. Ready to transcribe!');
+});
+
+document.getElementById('skip-api-btn').addEventListener('click', () => {
+  demoMode = true;
+  document.getElementById('api-modal').classList.add('hidden');
+  document.getElementById('sb-api-status').textContent = 'demo mode';
+  document.getElementById('sb-api-status').style.color = 'var(--warn)';
+  toast('Demo mode: placeholder transcriptions will be used', 'warn');
+});
+
+document.getElementById('change-key-btn').addEventListener('click', () => {
+  document.getElementById('api-modal').classList.remove('hidden');
+});
+
+// ── FILE LOADING ───────────────────────────────────────────────────────────
+document.getElementById('load-folder-btn').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('add-files-btn').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  handleFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.wav') || f.type.startsWith('audio/'));
+  handleFiles(files);
+});
+
+function uniqueLabel(originalName) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `${ts}_${originalName}`;
+}
+
+function handleFiles(files) {
+  const wavFiles = files.filter(f => f.name.toLowerCase().endsWith('.wav') || f.type.startsWith('audio/'));
+  if (!wavFiles.length) { toast('No .wav files found', 'warn'); return; }
+
+  let added = 0, skipped = 0;
+  wavFiles.forEach(file => {
+    // Deduplicate on size + lastModified — truly identical files only
+    if (voicemails.find(v => v.size === file.size && v.lastModified === file.lastModified)) { skipped++; return; }
+    const parsedDate  = parseDateFromFilename(file.name);
+    const parsedPhone = parsePhoneFromFilename(file.name);
+    const label = uniqueLabel(file.name);
+    voicemails.push({
+      id: nextId++,
+      file,
+      filename:     file.name,   // original name → OriginalFilename in List
+      label,                     // timestamped unique label → displayed in dashboard
+      size:         file.size,
+      lastModified: file.lastModified,
+      sizeLabel:    formatBytes(file.size),
+      transcript: '',
+      caller: '',
+      phone: parsedPhone,        // pre-filled from PA-flow filename if present
+      calldate: parsedDate,
+      calltime: '',
+      retdate:  '',
+      rettime:  '',
+      pushed:   false,
+      callback: '',
+      description: '',
+      staffname: '',
+      notes: '',
+      status: 'pending',
+      transcribing: false
+    });
+    added++;
+  });
+
+  if (!added && skipped) { toast(`${skipped} file(s) already loaded — no duplicates added`, 'warn'); return; }
+
+  showDashboard();
+  render();
+  const msg = skipped ? `Added ${added} file(s) — ${skipped} duplicate(s) skipped` : `Added ${added} file(s)`;
+  toast(msg);
+  document.getElementById('transcribe-all-btn').disabled = false;
+  document.getElementById('export-csv-btn').disabled = false;
+  document.getElementById('save-db-btn').disabled = false;
+  document.getElementById('clear-btn').disabled = false;
+}
+
+// ── TRANSCRIPTION ──────────────────────────────────────────────────────────
+document.getElementById('transcribe-all-btn').addEventListener('click', async () => {
+  const pending = voicemails.filter(v => !v.transcript && !v.transcribing);
+  if (!pending.length) { toast('All files already transcribed', 'warn'); return; }
+  transcribeBatch(pending);
+});
+
+async function transcribeBatch(items) {
+  const wrap = document.getElementById('progress-wrap');
+  const bar  = document.getElementById('progress-bar');
+  const lbl  = document.getElementById('progress-label');
+  wrap.classList.add('visible');
+
+  let done = 0;
+  bar.style.width = '0%';
+  lbl.textContent = `0 / ${items.length}`;
+
+  for (const vm of items) {
+    vm.transcribing = true;
+    render();
+    try {
+      vm.transcript = await transcribeFile(vm.file, vm.label || vm.filename);
+      // Auto-extract caller name, phone, datetime via Groq LLM
+      if (vm.transcript && !vm.transcript.startsWith('[')) {
+        const meta = await extractMetadata(vm.transcript, vm.label || vm.filename);
+        if (meta.caller)                 vm.caller   = meta.caller;
+        if (meta.phone    && !vm.phone)  vm.phone    = meta.phone;   // don't overwrite phone parsed from filename
+        if (meta.calldate && !vm.calldate) vm.calldate = meta.calldate;
+      }
+      // Stamp transcription date/time if still blank
+      if (!vm.calldate || !vm.calltime) {
+        const now = new Date();
+        if (!vm.calldate) vm.calldate = now.toISOString().slice(0, 10);
+        if (!vm.calltime) vm.calltime = now.toTimeString().slice(0, 5); // HH:MM
+      }
+    } catch(e) {
+      vm.transcript = `[Error: ${e.message}]`;
+    }
+    vm.transcribing = false;
+    done++;
+    const pct = Math.round(done / items.length * 100);
+    bar.style.width = pct + '%';
+    lbl.textContent = `${done} / ${items.length}`;
+    render();
+  }
+
+  wrap.classList.remove('visible');
+  updateStats();
+  toast(`Transcribed ${done} file(s) ✓`);
+}
+
+async function transcribeFile(file, label) {
+  if (demoMode) {
+    await sleep(600 + Math.random() * 800);
+    return generateDemoTranscript(label || file.name);
+  }
+
+  const formData = new FormData();
+  formData.append('file', file, label || file.name);
+
+  const response = await fetch('http://127.0.0.1:5001/transcribe', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text?.trim() || '[No speech detected]';
+}
+
+// ── METADATA EXTRACTION (Groq LLM) ───────────────────────────────────────
+async function extractMetadata(transcript, filename) {
+  // Regex fallback — handles single names, casual intros, varied phrasing
+  const fallback = () => {
+    const caller = (() => {
+      // Strip out "calling for X" / "trying to reach X" / "for X" phrases first
+      // so we don't accidentally grab the recipient's name
+      const stripped = transcript
+        .replace(/(?:calling for|trying to reach|asking for|to reach|for|reaching out to)\s+[A-Za-z]+(?:\s+[A-Za-z]+){0,2}/gi, '')
+        .replace(/(?:please have|have)\s+[A-Za-z]+\s+(?:call|return)/gi, '');
+
+      // Only fill caller when speaker clearly identifies themselves or their org
+      const skip = new Set(['The','A','An','Hi','Hey','Hello','Yes','No','So','Well','Just','This','That','Here','There','My','Your','Our','Their','It','Is','He','She','We','They','You','I','calling','speaking']);
+
+      // Strip recipient phrases so we don't accidentally grab them
+      const t = transcript.replace(/(?:calling for|trying to reach|to reach|looking for|to speak with|have\s+\w+\s+call|Hey,?\s+\w+)[^,.]*/gi, '');
+
+      // 1. Name + org/place: "Stuart over here at Broadcast House" / "Stuart calling from Acme"
+      let m = t.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:here at|over here at|calling from|over at|from)\s+([A-Z][A-Za-z '&]+?)(?:[,.]|\s+(?:and|to|about|regarding|just)|$)/);
+      if (m?.[1] && m?.[2] && !skip.has(m[1].split(' ')[0])) return m[1].trim() + ' @ ' + m[2].trim();
+
+      // 2. Explicit name self-ID patterns
+      const namePatterns = [
+        /\bthis is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
+        /\bhey,?\s+it'?s\s+me,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /\bit'?s\s+me,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /\bhey,?\s+it'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /\bit'?s\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s*[,.]|\s+(?:calling|here|from|speaking))/i,
+        /\bmy name(?:'?s|\s+is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
+        /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:here|calling|speaking|over here)\b/,
+      ];
+      for (const re of namePatterns) {
+        m = t.match(re);
+        if (m?.[1] && !skip.has(m[1].split(' ')[0])) {
+          // Check for org after the name
+          const orgM = transcript.slice(transcript.indexOf(m[1])).match(/(?:at|from|with|over at)\s+([A-Z][A-Za-z '&]+?)(?:[,.]|\s+(?:and|to|about)|$)/);
+          if (orgM?.[1]) return m[1].trim() + ' @ ' + orgM[1].trim();
+          return m[1].trim();
+        }
+      }
+
+      // 3. No name — org/company/dept/role only
+      const orgM = t.match(/(?:calling from|this is|from)\s+([A-Z][A-Za-z '&]{2,30})(?:[,.]|\s+(?:and|to|about|regarding)|$)/);
+      if (orgM?.[1] && !skip.has(orgM[1].trim().split(' ')[0])) return '[' + orgM[1].trim() + ']';
+
+      const deptM = t.match(/(?:calling from|from)\s+(?:the\s+)?([A-Za-z]+\s+(?:department|dept|office|team|division))/i);
+      if (deptM?.[1]) return '[' + deptM[1].trim() + ']';
+
+      const roleM = t.match(/(?:I'm|I am)\s+your\s+([A-Za-z][A-Za-z\s]{2,30})(?:[,.]|$)/i);
+      if (roleM?.[1]) return '[' + roleM[1].trim() + ']';
+
+      return '';
+    })();
+    const phoneM = transcript.match(/\b(\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4})\b/);
+    return { caller, phone: phoneM ? phoneM[1] : '', calldate: '' };
+  };
+
+  if (!demoMode) {
+    try {
+      const resp = await fetch('http://127.0.0.1:11434/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'qwen2.5:latest',
+          stream: false,
+          options: { temperature: 0 },
+          messages: [{
+            role: 'system',
+            content: 'Extract caller identity from a voicemail. Return ONLY raw JSON: {"caller":"","phone":"","calldate":""}. No markdown.\n\nFor CALLER use the best identifier in this priority:\n1. Name + org/place: return \"Name @ Place\" e.g. \"Stuart @ Broadcast House\"\n2. Name only: return the name e.g. \"Stuart\"\n3. No name but org/company/place: return \"[Org]\" e.g. \"[Broadcast House]\"\n4. No name but dept: return \"[Billing Dept]\" etc\n5. No name but role: return \"[Your Insurance Agent]\" etc\n6. Nothing clear: return \"\"\n\nValid self-ID patterns: \"this is X\", \"it\'s X\", \"it\'s me, X\", \"hey it\'s X\", \"hey, it\'s me X\", \"my name is X\", \"X here\", \"X calling\", \"X speaking\", \"X over here\", \"X over here at Y\", \"X calling from Y\". For informal patterns like \"it\'s me, X\" or \"hey it\'s me, X\", the name follows \"me\".\n\nNEVER use names after: \"for\", \"to reach\", \"trying to reach\", \"calling for\", \"Hey X\" (greeting), \"have X call\", \"please tell X\" — those are recipients not callers.\n\nFor PHONE: callback number left. Digits and dashes only. Empty if none.\nFor CALLDATE: any date/time mentioned. Empty if none.'
+          }, {
+            role: 'user',
+            content: 'Transcript: ' + transcript
+          }]
+        })
+      });
+      if (!resp.ok) return fallback();
+      const data = await resp.json();
+      const raw = data.message?.content?.trim() || '{}';
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      if (!parsed.caller) parsed.caller = fallback().caller;
+      return parsed;
+    } catch(e) {
+      return fallback();
+    }
+  }
+  return fallback();
+}
+
+// Parse date/time hint from voicemail filename (e.g. 20240314_143022.wav, 031126.wav)
+function parseDateFromFilename(name) {
+  const base = name.replace(/\.wav$/i, '');
+  // Format: YYYYMMDD_HHMMSS or YYYYMMDD
+  let m = base.match(/(\d{4})(\d{2})(\d{2})(?:[_\-T](\d{2})(\d{2})(\d{2})?)?/);
+  if (m) {
+    const [,yr,mo,dy,hr='00',mn='00',sc='00'] = m;
+    return `${yr}-${mo}-${dy} ${hr}:${mn}`;
+  }
+  // Format: MMDDYY or MMDDYYYY
+  m = base.match(/^(\d{2})(\d{2})(\d{2,4})$/);
+  if (m) {
+    const [,mo,dy,yr] = m;
+    const fullYr = yr.length === 2 ? '20' + yr : yr;
+    return `${fullYr}-${mo}-${dy}`;
+  }
+  return '';
+}
+
+// Parse phone number from PA-flow-renamed filename: YYYYMMDD_HHmmss_4024712435.wav
+// Also handles: tel_4024712435.wav, phone_4024712435.wav, any trailing 10-digit block
+function parsePhoneFromFilename(name) {
+  const base = name.replace(/\.wav$/i, '');
+  const parts = base.split('_');
+
+  // Primary: PA flow format — 3rd segment is exactly 10 digits
+  if (parts.length >= 3) {
+    const candidate = parts[parts.length - 1].replace(/\D/g, '');
+    if (candidate.length === 10) return candidate;
+  }
+
+  // Fallback: any 10-digit sequence in the filename not part of a date block
+  // Exclude the leading YYYYMMDDHHMMSS digits by stripping first 14 digits
+  const stripped = base.replace(/^\d{8}[_\-]?\d{6}/, '');
+  const m = stripped.match(/\b(\d{10})\b/);
+  if (m) return m[1];
+
+  return '';
+}
+
+async function transcribeSingle(id) {
+  const vm = voicemails.find(v => v.id === id);
+  if (!vm || vm.transcribing) return;
+  transcribeBatch([vm]);
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  let rows = [...voicemails];
+
+  // Filter
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    rows = rows.filter(v =>
+      (v.label||v.filename||'').toLowerCase().includes(q) ||
+      (v.transcript||'').toLowerCase().includes(q) ||
+      (v.caller||'').toLowerCase().includes(q) ||
+      (v.phone||'').toLowerCase().includes(q) ||
+      (v.calldate||'').toLowerCase().includes(q) ||
+      (v.callback||'').toLowerCase().includes(q) ||
+      (v.description||'').toLowerCase().includes(q) ||
+      (v.staffname||'').toLowerCase().includes(q) ||
+      (v.notes||'').toLowerCase().includes(q)
+    );
+  }
+
+  // Sort — phone number is primary key default
+  const sk = document.getElementById('sort-select').value;
+  if (sk === 'phone' || sk === 'idx') {
+    rows.sort((a,b) => {
+      const pa = (a.phone||'').replace(/\D/g,'');
+      const pb = (b.phone||'').replace(/\D/g,'');
+      if (pa && pb) return pa.localeCompare(pb) || (a.calldate||'').localeCompare(b.calldate||'');
+      if (pa) return -1; if (pb) return 1;
+      return (a.calldate||'').localeCompare(b.calldate||'') || a.id - b.id;
+    });
+  }
+  else if (sk === 'calldate')    rows.sort((a,b) => (a.calldate||'').localeCompare(b.calldate||''));
+  else if (sk === 'calldate-desc') rows.sort((a,b) => (b.calldate||'').localeCompare(a.calldate||''));
+  else if (sk === 'caller')      rows.sort((a,b) => (a.caller||'').localeCompare(b.caller||''));
+  else if (sk === 'filename')    rows.sort((a,b) => a.filename.localeCompare(b.filename));
+  else if (sk === 'status')      rows.sort((a,b) => a.status.localeCompare(b.status));
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="15">No voicemails match your search</td></tr>`;
+    return;
+  }
+
+  rows.forEach((vm, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = vm.id;
+
+    const statusCycle = ['new','reviewed','actioned','archived'];
+
+    tr.innerHTML = `
+      <td class="td-check"><input type="checkbox" class="row-check" data-id="${vm.id}"></td>
+      <td class="td-num">${i+1}</td>
+      <td class="td-phone">
+        <div class="editable" contenteditable="true" data-field="phone" data-id="${vm.id}" placeholder="—">${escHtml(vm.phone||'')}</div>
+      </td>
+      <td class="td-caller">
+        <div class="editable" contenteditable="true" data-field="caller" data-id="${vm.id}" placeholder="—">${escHtml(vm.caller||'')}</div>
+      </td>
+      <td class="td-calldate">
+        <input type="date" class="date-input" data-field="calldate" data-id="${vm.id}" value="${vm.calldate||''}">
+      </td>
+      <td class="td-calldate">
+        <input type="time" class="date-input" data-field="calltime" data-id="${vm.id}" value="${vm.calltime||''}">
+      </td>
+      <td class="td-filename">
+        <div class="editable" contenteditable="true" data-field="label" data-id="${vm.id}" placeholder="—">${escHtml(vm.label||vm.filename||'')}</div>
+      </td>
+      <td class="td-transcript">
+        ${vm.transcribing
+          ? `<span class="transcribing-cell"><span class="spinner"></span>Transcribing…</span>`
+          : `<div class="editable" contenteditable="true" data-field="transcript" data-id="${vm.id}" placeholder="Click ⚡ or type…">${escHtml(vm.transcript)}</div>`
+        }
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="staffname" data-id="${vm.id}" placeholder="Staff name…">${escHtml(vm.staffname||'')}</div>
+      </td>
+      <td class="td-calldate">
+        <input type="date" class="date-input" data-field="retdate" data-id="${vm.id}" value="${vm.retdate||''}">
+      </td>
+      <td class="td-calldate">
+        <input type="time" class="date-input" data-field="rettime" data-id="${vm.id}" value="${vm.rettime||''}">
+      </td>
+      <td class="td-notes">
+        <div class="editable" contenteditable="true" data-field="notes" data-id="${vm.id}" placeholder="Add notes…">${escHtml(vm.notes||'')}</div>
+      </td>
+      <td class="td-status">
+        <span class="status-badge status-${vm.status}">
+          <select class="status-select" data-id="${vm.id}">
+            <option value="pending"     ${vm.status==='pending'     ? 'selected' : ''}>Pending</option>
+            <option value="in-progress" ${vm.status==='in-progress' ? 'selected' : ''}>In Progress</option>
+            <option value="review"      ${vm.status==='review'      ? 'selected' : ''}>Review</option>
+            <option value="done"        ${vm.status==='done'        ? 'selected' : ''}>Done</option>
+            <option value="unreachable" ${vm.status==='unreachable' ? 'selected' : ''}>Unreachable</option>
+          </select>
+        </span>
+      </td>
+      <td class="td-actions">
+        ${vm.pushed ? `<span title="Pushed to List" style="color:var(--accent);font-size:13px;">✓</span>` : ''}
+        ${!vm.transcript && !vm.transcribing
+          ? `<button class="icon-btn transcribe-btn" data-id="${vm.id}" title="Transcribe this file">⚡</button>`
+          : ''
+        }
+        <button class="icon-btn del" data-id="${vm.id}" title="Remove">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateStats();
+}
+
+// ── EVENT DELEGATION ───────────────────────────────────────────────────────
+document.getElementById('table-body').addEventListener('input', e => {
+  const el = e.target;
+  if (el.classList.contains('editable')) {
+    const id = parseInt(el.dataset.id);
+    const field = el.dataset.field;
+    const vm = voicemails.find(v => v.id === id);
+    if (vm) { vm[field] = el.innerText.trim(); updateStats(); }
+  }
+  if (el.classList.contains('date-input')) {
+    const id = parseInt(el.dataset.id);
+    const vm = voicemails.find(v => v.id === id);
+    if (vm) { vm[el.dataset.field] = el.value; }
+  }
+});
+
+document.getElementById('table-body').addEventListener('click', e => {
+  const btn = e.target;
+
+  // Status select (handled via change event below, skip clicks inside select)
+  if (btn.classList.contains('status-select') || btn.closest('.status-select')) return;
+
+  // Transcribe single
+  if (btn.classList.contains('transcribe-btn')) {
+    const id = parseInt(btn.dataset.id);
+    transcribeSingle(id);
+    return;
+  }
+
+  // Delete row
+  if (btn.classList.contains('del') || btn.closest('.del')) {
+    const id = parseInt((btn.dataset.id || btn.closest('[data-id]')?.dataset.id));
+    voicemails = voicemails.filter(v => v.id !== id);
+    if (!voicemails.length) { hideDashboard(); }
+    else render();
+    updateStats();
+    return;
+  }
+
+  // Row checkbox
+  if (btn.classList.contains('row-check')) {
+    updateSelCount();
+  }
+});
+
+// Status dropdown change
+document.getElementById('table-body').addEventListener('change', e => {
+  if (e.target.classList.contains('status-select')) {
+    const id = parseInt(e.target.dataset.id);
+    const vm = voicemails.find(v => v.id === id);
+    if (vm) { vm.status = e.target.value; render(); updateStats(); }
+  }
+});
+
+document.getElementById('check-all').addEventListener('change', e => {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = e.target.checked);
+  updateSelCount();
+});
+
+function updateSelCount() {
+  const n = document.querySelectorAll('.row-check:checked').length;
+  document.getElementById('sb-sel').style.display = n ? '' : 'none';
+  document.getElementById('sb-sel-count').textContent = n;
+}
+
+// ── SEARCH & SORT ──────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  render();
+});
+
+document.getElementById('sort-select').addEventListener('change', () => render());
+
+// ── SAVE / LOAD .DB ────────────────────────────────────────────────────────
+document.getElementById('save-db-btn').addEventListener('click', saveDB);
+document.getElementById('load-db-btn').addEventListener('click', () => document.getElementById('db-file-input').click());
+document.getElementById('db-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadDB(file);
+  e.target.value = '';
+});
+
+function saveDB() {
+  if (!voicemails.length) { toast('Nothing to save', 'warn'); return; }
+
+  const data = voicemails.map(vm => ({
+    id: vm.id, filename: vm.filename, label: vm.label||vm.filename,
+    size: vm.size, sizeLabel: vm.sizeLabel, lastModified: vm.lastModified||0,
+    phone: vm.phone||'', caller: vm.caller||'', calldate: vm.calldate||'',
+    calltime: vm.calltime||'', retdate: vm.retdate||'', rettime: vm.rettime||'',
+    pushed: vm.pushed ? 1 : 0, transcript: vm.transcript||'',
+    staffname: vm.staffname||'', notes: vm.notes||'', status: vm.status||'pending'
+  }));
+
+  const json = JSON.stringify({ version: 2, saved: new Date().toISOString(), records: data }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'voxlog-backup.json' });
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Saved ${voicemails.length} records to voxlog-backup.json ✓`);
+}
+
+async function loadDB(file) {
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+
+    // Support both v2 format {version,records:[]} and raw array []
+    const records = Array.isArray(parsed) ? parsed : parsed.records;
+    if (!records || !records.length) { toast('No records found in backup file', 'warn'); return; }
+
+    voicemails = records.map(r => ({
+      id:           r.id,
+      file:         null,
+      filename:     r.filename || '',
+      label:        r.label || r.filename || '',
+      size:         r.size || 0,
+      sizeLabel:    r.sizeLabel || '',
+      lastModified: r.lastModified || 0,
+      phone:        r.phone || '',
+      caller:       r.caller || '',
+      calldate:     r.calldate || '',
+      calltime:     r.calltime || '',
+      retdate:      r.retdate || '',
+      rettime:      r.rettime || '',
+      pushed:       !!r.pushed,
+      transcript:   r.transcript || '',
+      staffname:    r.staffname || '',
+      notes:        r.notes || '',
+      status:       r.status || 'pending',
+      transcribing: false
+    }));
+
+    nextId = Math.max(...voicemails.map(v => v.id)) + 1;
+    showDashboard();
+    render();
+    updateStats();
+    document.getElementById('transcribe-all-btn').disabled = false;
+    document.getElementById('export-csv-btn').disabled = false;
+    document.getElementById('save-db-btn').disabled = false;
+    document.getElementById('clear-btn').disabled = false;
+    document.getElementById('push-list-btn').disabled = false;
+    toast(`Loaded ${voicemails.length} records from ${file.name} ✓`);
+  } catch(e) {
+    toast(`Failed to load backup: ${e.message}`, 'error');
+  }
+}
+
+// ── EXPORT CSV ─────────────────────────────────────────────────────────────
+document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+
+function exportCSV() {
+  if (!voicemails.length) { toast('Nothing to export', 'warn'); return; }
+  const cols = ['#','Phone Number','Caller Name','Call Date/Time','Filename','Transcription','Date/Time Callback','Description','Staff Name','Notes','Status'];
+  const rows = [cols, ...voicemails.map((vm,i) => [
+    i+1,
+    vm.phone||'',
+    vm.caller||'',
+    vm.calldate||'',
+    vm.label||vm.filename,
+    vm.transcript,
+    vm.callback||'',
+    vm.description||'',
+    vm.staffname||'',
+    vm.notes||'',
+    vm.status
+  ])];
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'voxlog_export.csv' });
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${voicemails.length} rows to CSV`);
+}
+
+// ── CLEAR ──────────────────────────────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear all voicemails from the dashboard?')) return;
+  voicemails = [];
+  hideDashboard();
+  toast('Dashboard cleared');
+  document.getElementById('transcribe-all-btn').disabled = true;
+  document.getElementById('export-csv-btn').disabled = true;
+  document.getElementById('save-db-btn').disabled = true;
+  document.getElementById('clear-btn').disabled = true;
+  document.getElementById('push-list-btn').disabled = true;
+});
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total    = voicemails.length;
+  const reviewed = voicemails.filter(v => v.status === 'done').length;
+  const pending  = voicemails.filter(v => v.status === 'pending' || v.status === 'in-progress' || v.status === 'review').length;
+  document.getElementById('stat-total').textContent    = total;
+  document.getElementById('stat-reviewed').textContent = reviewed;
+  document.getElementById('stat-pending').textContent  = pending;
+  document.getElementById('sb-files').textContent = `${total} file(s) loaded`;
+}
+
+// ── UI HELPERS ─────────────────────────────────────────────────────────────
+function showDashboard() {
+  document.getElementById('drop-zone').style.display = 'none';
+  document.getElementById('dashboard').classList.add('visible');
+  document.getElementById('load-folder-btn').style.display = 'none';
+  document.getElementById('add-files-btn').style.display = '';
+}
+function hideDashboard() {
+  document.getElementById('drop-zone').style.display = '';
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('load-folder-btn').style.display = '';
+  document.getElementById('add-files-btn').style.display = 'none';
+  updateStats();
+  document.getElementById('sb-files').textContent = 'No files loaded';
+}
+
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function generateDemoTranscript(filename) {
+  const demos = [
+    { file: 'VM_20260324_083012.wav', transcript: "Hi, this is Sarah from Midwest Insurance. I'm calling about claim number 4-4-7-8-2. Please call me back at your earliest convenience at 402-555-0147. Thank you." },
+    { file: 'VM_20260324_094531.wav', transcript: "Yeah, uh, this message is for the claims department. My name is Robert Benson, B-E-N-S-O-N. I had an accident on the fourteenth and I need to talk to someone about my policy. My number is 402-555-0293. Thanks." },
+    { file: 'VM_20260324_110248.wav', transcript: "Hello, I'm trying to reach the policy renewal team. This is Margaret Cho. My policy number is NE-2024-88821 and it's up for renewal next month. Please give me a call back. My number is 531-555-0076." },
+    { file: 'VM_20260324_131705.wav', transcript: "This is a message for IT support. We're having trouble accessing the shared drive this morning. Several people in our office can't log in. Please respond urgently. Extension 247, thank you." },
+    { file: 'VM_20260325_084419.wav', transcript: "Hi there, I'm calling to request a copy of my certificate of insurance. My name is James Whitfield and my account number is 00-47821. My email is on file. Thanks very much." },
+    { file: 'VM_20260325_143302.wav', transcript: "Hello, I was transferred here from the main line. I'm looking for information on commercial property coverage for a small business. If someone could call me back that would be great. This is Tom, 402-555-0388." },
+    { file: 'VM_20260325_160057.wav', transcript: "[Inaudible for first few seconds] — and so I just wanted to follow up on that email I sent last Tuesday. Thanks, bye." },
+    { file: 'VM_20260326_090123.wav', transcript: "Hi, this is Linda Park calling from Omaha Property Management. I need to update the mailing address on our commercial policy, account number CP-8812. Please call me back at 402-555-0521. Thanks." },
+    { file: 'VM_20260326_103847.wav', transcript: "Yeah, hello, my name is Derek Ruiz. I got a letter in the mail saying my premium went up and I want to talk to someone about that. My policy is auto, number AU-77340. You can reach me at 531-555-0184." },
+    { file: 'VM_20260326_115500.wav', transcript: "This is Carol from the billing department at Sunrise Medical. We received a denial on a claim we submitted last month and need to appeal. Our group number is SM-2291. Please call 402-555-0962 at your earliest convenience." }
+  ];
+  // Match by filename if possible, otherwise pick randomly
+  const match = demos.find(d => d.file === filename);
+  if (match) return match.transcript;
+  return demos[Math.floor(Math.random() * demos.length)].transcript;
+}
+
+// ── PUSH TO LIST ───────────────────────────────────────────────────────────
+document.getElementById('push-list-btn').addEventListener('click', pushToList);
+document.getElementById('push-close-btn').addEventListener('click', () => {
+  document.getElementById('push-modal').classList.add('hidden');
+});
+document.getElementById('push-outlook-btn').addEventListener('click', () => {
+  const _to = 'DOI.SHIP\u0040nebraska\u002egov';
+  window.location.href = 'mailto:' + _to + '?subject=VoxLog%20List%20Sync&body=VoxLog%20List%20Sync%20export%20attached.%20Do%20not%20modify%20this%20email%20subject.';
+});
+
+function pushToList() {
+  if (!voicemails.length) { toast('No records to push', 'warn'); return; }
+
+  const unpushed = voicemails.filter(vm => !vm.pushed);
+  if (!unpushed.length) { toast('All records already pushed to List ✓', 'warn'); return; }
+
+  const rows = unpushed.map(vm => ({
+    Status:          vm.status   || 'pending',
+    CallDate:        vm.calldate || '',
+    CallTime:        vm.calltime || '',
+    PhoneNumber:     vm.phone    || '',
+    CallerName:      vm.caller   || vm.label || vm.filename || '',
+    Transcription:   vm.transcript || '',
+    StaffName:       vm.staffname  || '',
+    ReturnedCallDate:vm.retdate    || '',
+    ReturnedCallTime:vm.rettime    || '',
+    Notes:           vm.notes      || '',
+    OriginalFilename:vm.filename   || ''
+  }));
+
+  const json     = JSON.stringify(rows, null, 2);
+  const ts       = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const filename = `voxlog_listsync_${ts}.json`;
+
+  // Download the file
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // Mark as pushed
+  unpushed.forEach(vm => vm.pushed = true);
+  render();
+
+  // Show modal
+  document.getElementById('push-count-label').textContent    = `${rows.length} record${rows.length !== 1 ? 's' : ''}`;
+  document.getElementById('push-filename-label').textContent = filename;
+  document.getElementById('push-modal').classList.remove('hidden');
+}
+
+
+document.getElementById('help-btn').addEventListener('click', () => {
+  document.getElementById('help-overlay').classList.remove('hidden');
+});
+document.getElementById('help-close').addEventListener('click', () => {
+  document.getElementById('help-overlay').classList.add('hidden');
+});
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.add('hidden');
+});
+document.querySelectorAll('.help-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
