@@ -10,7 +10,7 @@
 | Property | Value |
 |----------|-------|
 | Application Name | VoxLog Local |
-| Version | 1.0 |
+| Version | 1.1 |
 | Classification | Internal Use Only |
 | Data Type | LOW IMPACT — voicemail metadata, transcription text |
 | Hosting | Local workstation (127.0.0.1) |
@@ -90,6 +90,18 @@ VoxLog Local is used to process voicemails left by callers. Callers are not curr
 
 **Assessment:** Disclosure gap identified. Remediation recommended before production use.
 
+### §4a — FOIA / Discovery Handling
+
+Voicemail transcription data transmitted via the VoxLog List Sync email workflow is subject to FOIA requests and litigation holds.
+
+**Controls implemented:**
+- Staff are instructed (in-app and in documentation) to apply the **Sensitive** sensitivity label to all sync emails before sending
+- Staff are instructed to delete sync emails from Sent Items after Power Automate confirms records are present in the MS List
+- The MS List (SharePoint) is designated as the system of record for all transcription data — not email
+- Litigation hold exception: if a hold is in effect, staff must contact the legal officer (Martin Swanson, Deputy Director/General Counsel) before deleting any sync emails
+
+**Assessment:** FOIA handling guidance is documented and communicated in-application. Sensitivity labeling is a staff procedural control — not technically enforced. Consider a Power Automate rule to auto-delete processed sync emails from the shared mailbox as a future enhancement.
+
 ### §5 — Validity & Reliability
 
 Transcription accuracy depends on audio quality and speaking clarity. All transcriptions are reviewed and edited by staff before use. The AI extraction pipeline uses a regex fallback if the language model returns an empty or malformed result.
@@ -116,6 +128,10 @@ VoxLog Local is maintained by NDOI IT. Staff using the application should be fam
 | API keys | None — no external API keys required |
 | Logging | whisper_server.py logs to console only — no log files written |
 | Audio retention | Audio files are not stored by the application — temp files deleted immediately after transcription |
+| Sync email sensitivity | Staff are instructed to apply the **Sensitive** sensitivity label to VoxLog List Sync emails before sending |
+| Sync email retention | Staff are instructed to delete sync emails from Sent Items after Power Automate confirms records in the MS List |
+| FOIA / Discovery | Sync emails are subject to FOIA and litigation holds. Staff must contact legal officer (Martin Swanson) before deleting if a hold is in effect. The MS List is the system of record for transcription data. |
+| Noise suppression | VAD_FILTER enabled in whisper_server.py — silent/noise segments are stripped before transcription, reducing risk of hallucinated content from background audio |
 
 ---
 
@@ -168,7 +184,7 @@ If a security concern is identified with VoxLog Local:
 | Field | Value |
 |-------|-------|
 | Author | Lance Terrill, IT Business Systems Analyst, NDOI |
-| Last Updated | April 2026 |
+| Last Updated | April 2026 (v1.1 — noise suppression, FOIA handling) |
 | Review Cycle | Annual or upon significant application change |
 | Distribution | NDOI IT, OCIO RMC (upon request) |
 

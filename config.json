@@ -1,18 +1,24 @@
 {
   "app": {
     "name": "VoxLog",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "environment": "production"
   },
   "transcription": {
-    "provider": "microsoft_ai_builder",
+    "provider": "faster_whisper_local",
+    "model": "base",
     "language": "en-US",
-    "audioFormats": ["wav", "mp3"]
+    "audioFormats": ["wav", "mp3"],
+    "beamSize": 5,
+    "vadFilter": true,
+    "conditionOnPreviousText": true
   },
   "powerAutomate": {
     "triggerEmail": "DOI.SHIP@nebraska.gov",
     "listSyncSubject": "VoxLog List Sync",
-    "archivePath": "/VoxLog/Voicemails/"
+    "archivePath": "/VoxLog/Voicemails/",
+    "sensitivityLabel": "Sensitive",
+    "emailRetention": "Delete from Sent Items after PA processing confirms records in MS List"
   },
   "storage": {
     "type": "sqlite",
@@ -23,7 +29,9 @@
     "allowedDomains": ["nebraska.gov"],
     "requireAuth": true,
     "sessionTimeoutMinutes": 30,
-    "logAccess": true
+    "logAccess": true,
+    "foiaNotice": "Sync emails containing transcription data are subject to FOIA and litigation holds. Delete promptly after PA processing unless a hold is in effect.",
+    "litigationHoldContact": "martin.swanson@nebraska.gov"
   },
   "ui": {
     "statusValues": ["Pending", "In Progress", "Review", "Done", "Unreachable"],

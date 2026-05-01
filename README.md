@@ -3,7 +3,7 @@
 
 > **Drop it. Transcribe it. Push it.** — A fully offline voicemail transcription tool that turns raw `.wav` recordings into structured, searchable, actionable records — synced to Microsoft Lists via Power Automate. No internet required. No data leaves your machine.
 
-![Version](https://img.shields.io/badge/version-1.0-00c896?style=flat-square&logo=github)
+![Version](https://img.shields.io/badge/version-1.1-00c896?style=flat-square&logo=github)
 ![License](https://img.shields.io/badge/license-MIT-0099ff?style=flat-square)
 ![Built With](https://img.shields.io/badge/built%20with-HTML%20%2F%20JS%20%2F%20Python-ffaa00?style=flat-square)
 ![Powered By](https://img.shields.io/badge/powered%20by-faster--whisper%20%2B%20Ollama-00c896?style=flat-square)
@@ -229,6 +229,20 @@ MODEL_SIZE = "base"   # change this line
 
 ---
 
+## Noise & Background Suppression
+
+VoxLog uses three settings in `whisper_server.py` to reduce transcription errors caused by hold music, ambient office noise, or low-quality recordings:
+
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| `VAD_FILTER` | `True` | Silero VAD — strips silent/noise-only segments before Whisper processes audio. Reduces hallucinated text from background noise. |
+| `BEAM_SIZE` | `5` | Higher = more accurate but slower. Increase to `10` for choppy or incomplete transcripts on quiet calls. |
+| `CONDITION_ON_PREVIOUS` | `True` | Improves sentence continuity across segments. Reduces cut-off words at segment boundaries. |
+
+If transcription quality is still poor on a specific recording, try upgrading `MODEL_SIZE` from `base` to `small` — the improvement in accuracy is significant for noisy audio.
+
+---
+
 ## Power Automate List Sync
 
 The Push to List feature exports a JSON file and opens an Outlook email. The receiving Power Automate flow (standard connectors only) handles the rest.
@@ -356,10 +370,14 @@ Click **💾 Backup** to save everything to a `voxlog.db` file. Reload it next s
 1. Click **📤 Push to List**
 2. A JSON file downloads automatically
 3. An Outlook email draft opens — attach the downloaded JSON file
-4. Send the email — Power Automate handles the rest
-5. Pushed records show a green **✓** in the dashboard
+4. Apply the **Sensitive** sensitivity label in Outlook before sending
+5. Send the email — Power Automate handles the rest within 1–2 minutes
+6. Pushed records show a green **✓** in the dashboard
+7. **Delete the sent email from your Sent Items** after confirming records appear in the VoxLog MS List — the List is the system of record, not email
 
 > 📧 Do not change the email subject line — Power Automate uses it as a trigger.
+
+> ⚠️ **FOIA / Discovery Notice:** Emails containing voicemail transcriptions are subject to FOIA and litigation holds. Delete sync emails promptly after Power Automate processing. If a litigation hold is in effect, contact your legal officer (Martin Swanson) before deleting.
 
 ---
 
